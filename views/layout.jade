@@ -1,0 +1,17 @@
+doctype html5
+html
+  head
+    block head
+      title #{title}
+      link(rel='stylesheet', href='/stylesheets/style.css')
+      script( src="/js/default.js" )
+  body
+    header
+      h1 #{title}
+    .container
+      .main-content
+        block content
+      .sidebar
+        block sidebar
+    footer
+      p Running on node with Express, Jade and Stylus

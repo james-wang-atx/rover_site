@@ -1,0 +1,32 @@
+extend layout
+
+mixin imglink(name, href, w, h)
+  img(src=href, id=name, alt=name, border="0", width=w, height=h)
+
+block append head
+    script( src="/js/index.js" )
+
+block content
+  p
+    | Welcome to the Security and Safety Rover's monitoring page.
+  p
+    | Live Image:
+  p
+    +imglink('camimg', '/snapshot?x=0', '384', '216')
+
+block sidebar
+  .widget
+    h1 Rover Sensors
+    p
+      | Fire Detection - [false]
+    p
+      | Water Detection - [false]
+    h1 SensorTag Data
+    p
+      | Temperature - [70 degrees (F)]
+    p
+      | other data...
+    h1 Testing LED USR3
+    form
+      button(name="ledbutton" type="submit" value="on") LED on
+      button(name="ledbutton" type="submit" value="off") LED off
