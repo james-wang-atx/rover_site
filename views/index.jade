@@ -30,3 +30,61 @@ block sidebar
     form
       button(name="ledbutton" type="submit" value="on") LED on
       button(name="ledbutton" type="submit" value="off") LED off
+    p
+    h1 BASIC MOVEMENT
+    div
+      .mcontrolLeft
+          form(name="ControlInput", action="/control?dir=FWD", method="post")
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='FTIME') FTIME
+                   input(id='FTIME',type='text',value='500',placeholder='500',name='FTIME')
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='FDUTY') FDUTY
+                   input(id='FDUTY',type='text',value='0.2',placeholder='0.2',name='FDUTY')
+            div(data-role='fieldcontain')   
+              input(type='submit',value='FWD',data-transition='fade', data-theme='c')
+      .mcontrolLeft
+          form(name="ControlInput", action="/control?dir=LFT", method="post")
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='LTIME') LTIME
+                   input(id='LTIME',type='text',value='500',placeholder='500',name='LTIME')
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='LDUTY') LDUTY
+                   input(id='LDUTY',type='text',value='0.3',placeholder='0.3',name='LDUTY')
+            div(data-role='fieldcontain')   
+              input(type='submit',value='LFT',data-transition='fade', data-theme='c')
+      div
+        .mcontrolLeft
+              form(name="ControlInput", action="/control?dir=RGT", method="post")
+                div(data-role='fieldcontain')
+                  fieldset(data-role='controlgroup')
+                    label(for='RTIME') RTIME
+                       input(id='RTIME',type='text',value='500',placeholder='500',name='RTIME')
+                div(data-role='fieldcontain')
+                  fieldset(data-role='controlgroup')
+                    label(for='RDUTY') RDUTY
+                       input(id='RDUTY',type='text',value='0.3',placeholder='0.3',name='RDUTY')
+                div(data-role='fieldcontain')   
+                  input(type='submit',value='RGT',data-transition='fade', data-theme='c')
+      .mcontrolLeft
+          form(name="ControlInput", action="/control?dir=BCK", method="post")
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='BTIME') BTIME
+                   input(id='BTIME',type='text',value='500',placeholder='500',name='BTIME')
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='BDUTY') BDUTY
+                   input(id='BDUTY',type='text',value='0.2',placeholder='0.2',name='BDUTY')
+            div(data-role='fieldcontain')   
+              input(type='submit',value='BCK',data-transition='fade', data-theme='c')
+    h1 Ultrasonic Sensors
+    div
+        textarea(id="UltrasonicFront", name="UltrasonicFront", src='/uss/front?x=0')
+            | unknown
+        textarea(id="UltrasonicRear", name="UltrasonicRear", src='/uss/rear?x=0')
+            | unknown

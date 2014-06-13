@@ -1,3 +1,5 @@
+// Note this code runs in client browser context
+
 var images = [];
 //var pong = 0;
 var counter=1;
@@ -10,7 +12,12 @@ function displayImage() {
   //pong ^= 1;
   //document.getElementById("camimg").src = "images/last_outputHD.jpg?x=" + counter;
   document.getElementById("camimg").src = "/snapshot?x=" + counter;
+  //document.getElementById("UltrasonicFront").src = "/uss/front?x=" + counter;
+  //document.getElementById("UltrasonicRear").src = "/uss/rear?x=" + counter;
   counter += 1;
+
+  download_to_textbox("/uss/front", document.getElementById("UltrasonicFront"));
+  download_to_textbox("/uss/rear", document.getElementById("UltrasonicFront"));
 }
 
 function startTimer() {
@@ -21,3 +28,10 @@ function OnCamImgClick(imgobj) {
 }
 
 startTimer();
+
+
+function download_to_textbox(url, el) {
+    $.get(url, null, function (data) {
+        el.val(data);
+    }, "text");
+}
