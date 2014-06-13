@@ -89,20 +89,20 @@ function updateUltrasonics() {
 }
 
 app.get('/uss/rear', function (req, res) {
-  console.log('/uss - req.url=' + req.url);
+  //console.log('/uss - req.url=' + req.url);
 
   res.set({
     'Content-Type': 'text/plain'
   });
 
-res.writeHead(200);
-res.write(LastRearUSSReading);  
+  res.writeHead(200);
+  res.write(LastRearUSSReading);  
 
   res.end();
 })
 
 app.get('/uss/front', function (req, res) {
-  console.log('/uss - req.url=' + req.url);
+  //console.log('/uss - req.url=' + req.url);
 
   res.set({
       'Content-Type': 'text/plain'
@@ -251,8 +251,8 @@ app.post('/control*', function (req, res) {
         var duty2 = validateDuty(duty - 0.2);
 
         console.log('req. duty = ' + duty);
-        bone.analogWriteEx('P9_14', duty, 2000, schedule_P9_14_Off, req.body.BTIME); //Left side back
-        bone.analogWriteEx('P8_19', duty2, 2000, schedule_P8_19_Off, req.body.BTIME); //Right side back
+        bone.analogWriteEx('P9_14', duty2, 2000, schedule_P9_14_Off, req.body.BTIME); //Left side back
+        bone.analogWriteEx('P8_19', duty, 2000, schedule_P8_19_Off, req.body.BTIME);  //Right side back
     } else if (req.url == "/control?dir=LFT") {
         P9_16_Off();
         P8_19_Off();
