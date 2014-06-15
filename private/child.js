@@ -4,13 +4,13 @@ var noble = require('noble');
 var SensorTag = require('sensortag');
 
 var discoveryInProgress = false;
-var MY_SENSOR_TAG_UUID = '9059af0b834a';
 var mySensorTag = null;
 
 process.on('message', function (m) {
     console.log('CHILD got message:', m);
     if (typeof m.hello != 'undefined' && typeof m.myTag != 'undefined') {
-        if ( discoveryInProgress === false && mySensorTag === null) {
+        console.log('bools: ' + (discoveryInProgress === false) + ', ' + (mySensorTag === null));
+        if (discoveryInProgress === false && mySensorTag === null) {
             DiscoverSensorTag(m.myTag);
         }
     } else {
@@ -21,6 +21,7 @@ process.on('message', function (m) {
 process.send({ foo: 'bar' });
 
 function DiscoverSensorTag(tagUUID) {
+    console.log('DiscoverSensorTag(' + tagUUID + '): setting discoveryInProgress = true');
     discoveryInProgress = true;
     SensorTag.discover(function (sensorTag) {
         console.log('SensorTag.discover: sensorTag = ' + sensorTag);
@@ -28,7 +29,7 @@ function DiscoverSensorTag(tagUUID) {
         // defer this till connected?
         mySensorTag = sensorTag;
 
-        if (sensorTag.uuid.toLowerCase() === MY_SENSOR_TAG_UUID) {
+        if (sensorTag.uuid.toLowerCase() === tagUUID) {
             console.log('found my sensortag!');
 
             sensorTag.connect(function () {
@@ -56,6 +57,7 @@ function DiscoverSensorTag(tagUUID) {
             });
         }
 
+        console.log('DiscoverSensorTag(' + tagUUID + '): setting discoveryInProgress = false');
         discoveryInProgress = false;
     }, tagUUID
     );
