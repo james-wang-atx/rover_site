@@ -4,7 +4,8 @@ var noble = require('noble');
 var SensorTag = require('sensortag');
 
 var discoveryInProgress = false;
-var mySensorTag = null;
+var mySensorTag         = null;
+var lastRSSI            = null;
 
 process.on('message', function (m) {
     console.log('CHILD got message:', m);
@@ -67,17 +68,19 @@ function DiscoverSensorTag(tagUUID) {
 
 function childProcesses() {
     if (mySensorTag !== null) {
-        mySensorTag._peripheral.on('rssiUpdate', function (rssi) {
-            console.log('peripheral on rssiUpdate: rssi = ' + rssi);
-        });
+        //mySensorTag._peripheral.on('rssiUpdate', function (rssi) {
+        //    console.log('peripheral on rssiUpdate: rssi = ' + rssi);
+        //});
+
         mySensorTag._peripheral.updateRssi(function (err, rssi) {
-            console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
+            lastRSSI = rssi;
+            //console.log('updateRssi: err = ' + err + ', rssi = ' + lastRSSI);
         });
     }
 }
 
 function startTimer() {
-    setInterval(childProcesses, 1000);
+    setInterval(childProcesses, 250);
 }
 
 startTimer();
