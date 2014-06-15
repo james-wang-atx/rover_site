@@ -17,7 +17,11 @@ function displayImage() {
   counter += 1;
 
   download_to_textbox("/uss/front", document.getElementById("UltrasonicFront"));
-  download_to_textbox("/uss/rear", document.getElementById("UltrasonicFront"));
+  download_to_textbox("/uss/rear", document.getElementById("UltrasonicRear"));
+
+//  download_to_textbox("/uss/front", document.getElementById("UltrasonicFront"));
+//  download_to_textbox("/uss/rear", document.getElementById("UltrasonicFront"));
+//  download_to_textbox(url, $("textarea[name='text']"));
 }
 
 function startTimer() {
@@ -32,6 +36,7 @@ startTimer();
 
 function download_to_textbox(url, el) {
     $.get(url, null, function (data) {
-        el.val(data);
+        //        el.val(data);
+        el.value = data;
     }, "text");
 }
