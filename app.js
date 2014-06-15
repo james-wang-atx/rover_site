@@ -2,18 +2,14 @@
  * Module dependencies
  */
 var express = require('express');
-var stylus = require('stylus');
-var nib = require('nib');
-var http = require('http');
-//var jade = require('jade');
-var fs = require('/usr/lib/node_modules/fs-ext/fs-ext.js');
-var bone = require('bonescript');
-
-var sys = require('sys');
-var exec = require('child_process').exec;
-
-//var BTSP = require('bluetooth-serial-port');
-var noble = require('noble');
+var stylus  = require('stylus');
+var nib     = require('nib');
+var http    = require('http');
+var fs      = require('/usr/lib/node_modules/fs-ext/fs-ext.js');
+var bone    = require('bonescript');
+var sys     = require('sys');
+var cp      = require('child_process');
+var exec    = cp.exec;
 
 bone.pinMode("USR3", bone.OUTPUT);
 var whichButton = 'USR3';
@@ -367,43 +363,8 @@ server.listen(app.get('port'), function () {
     process.title = 'rover_site';
 });
 
-// Bluetooth tests
 
 /*
-var BTserial = new BTSP.BluetoothSerialPort();
-var BTDevices = [];
-
-BTserial.on('found', function (address, name) {
-    console.log('found: address: ' + address, ', name: ' + name);
-    BTserial.findSerialPortChannel(address, function (channel) {
-        console.log('got channel: ' + channel);
-        BTDevices.push({ address: address, name: name, channel: channel });
-    });
-});
-
-BTserial.on('failure', function (err) {
-    console.log('failure: ' + err)
-});
-
-BTserial.on('finished', function () {
-    console.log('finished searching')
-})
-
-var dataBuffer = "";
-BTserial.on('data', function (buffer) {
-    dataBuffer = dataBuffer + buffer.toString('utf8');
-    if (dataBuffer.indexOf("\n") != -1) {
-        //getFromRobot(dataBuffer.slice(0, 1));
-        console.log('data buffer [' + dataBuffer);
-        dataBuffer = "";
-    }
-
-});
-
-console.log('BTserial.inquire()');
-BTserial.inquire();
-*/
-
 var serviceUUIDs = []; //["90:59:AF:0B:83:4A"]; //["<service UUID 1>", ...]; // default: [] => all
 var allowDuplicates = false;
 
@@ -412,7 +373,7 @@ noble.startScanning(serviceUUIDs, allowDuplicates); // particular UUID's
 noble.on('discover', function (peripheral) {
     console.log('found: ' + peripheral);
     //console.log('uuid: ' + peripheral.uuid);
-    if (peripheral.uuid.toLowerCase() === '9059af0b834a') {
+    if (peripheral.uuid.toLowerCase() === MY_SENSOR_TAG_UUID) {
         console.log('found my sensortag!');
     }
     // connect to whatever this is (sensortag)
@@ -442,15 +403,28 @@ noble.on('discover', function (peripheral) {
         console.log('peripheral on servicesDiscover: services = ' + services);
 
         // for particular service
-        /*
-        service.on('includedServicesDiscover', function (includedServiceUuids) {
-        console.log('service on includedServicesDiscover: includedServiceUuids = ' + includedServiceUuids);
-        });
+        
+        //service.on('includedServicesDiscover', function (includedServiceUuids) {
+        //console.log('service on includedServicesDiscover: includedServiceUuids = ' + includedServiceUuids);
+        //});
 
-        service.on('characteristicsDiscover', function (characteristics) {
-        console.log('service on characteristicsDiscover: characteristics = ' + characteristics);
-        });
-        */
+        //service.on('characteristicsDiscover', function (characteristics) {
+        //console.log('service on characteristicsDiscover: characteristics = ' + characteristics);
+        //});
+        
     });
 
 });
+*/
+
+var MY_SENSOR_TAG_UUID = '9059af0b834a';
+
+var n = cp.fork(__dirname + '/private/child.js');
+
+n.on('message', function (m) {
+    console.log('PARENT got message:', m);
+});
+
+n.send({ hello: 'world',
+         myTag: MY_SENSOR_TAG_UUID
+      });
