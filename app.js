@@ -411,7 +411,10 @@ noble.startScanning(serviceUUIDs, allowDuplicates); // particular UUID's
 
 noble.on('discover', function (peripheral) {
     console.log('found: ' + peripheral);
-
+    //console.log('uuid: ' + peripheral.uuid);
+    if (peripheral.uuid.toLowerCase() === '9059af0b834a') {
+        console.log('found my sensortag!');
+    }
     // connect to whatever this is (sensortag)
     peripheral.connect(function (err) {
         console.log('connect: err = ' + err);
@@ -426,9 +429,9 @@ noble.on('discover', function (peripheral) {
             console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
         });
 
-        peripheral.discoverAllServicesAndCharacteristics(function (err, services, characteristics) {
-            console.log('discoverAllServicesAndCharacteristics: err = ' + err + ', services = ' + services + ', characteristics = ' + characteristics);
-        });
+        //peripheral.discoverAllServicesAndCharacteristics(function (err, services, characteristics) {
+        //    console.log('discoverAllServicesAndCharacteristics: err = ' + err + ', services = ' + services + ', characteristics = ' + characteristics);
+        //});
     });
 
     peripheral.on('rssiUpdate', function (rssi) {
@@ -441,11 +444,11 @@ noble.on('discover', function (peripheral) {
         // for particular service
         /*
         service.on('includedServicesDiscover', function (includedServiceUuids) {
-            console.log('service on includedServicesDiscover: includedServiceUuids = ' + includedServiceUuids);
+        console.log('service on includedServicesDiscover: includedServiceUuids = ' + includedServiceUuids);
         });
 
         service.on('characteristicsDiscover', function (characteristics) {
-            console.log('service on characteristicsDiscover: characteristics = ' + characteristics);
+        console.log('service on characteristicsDiscover: characteristics = ' + characteristics);
         });
         */
     });
