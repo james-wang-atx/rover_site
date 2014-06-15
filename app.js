@@ -12,9 +12,9 @@ var bone = require('bonescript');
 var sys = require('sys');
 var exec = require('child_process').exec;
 
+//var BTSP = require('bluetooth-serial-port');
+var noble = require('noble');
 
-
- 
 bone.pinMode("USR3", bone.OUTPUT);
 var whichButton = 'USR3';
 
@@ -359,7 +359,95 @@ app.get('/snapshot', function (req, res) {
 
 })
 
-http.createServer(app).listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
-  process.title = 'rover_site';
+// Startup the server
+var server = http.createServer(app);
+
+server.listen(app.get('port'), function () {
+    console.log('Express server listening on port ' + app.get('port'));
+    process.title = 'rover_site';
+});
+
+// Bluetooth tests
+
+/*
+var BTserial = new BTSP.BluetoothSerialPort();
+var BTDevices = [];
+
+BTserial.on('found', function (address, name) {
+    console.log('found: address: ' + address, ', name: ' + name);
+    BTserial.findSerialPortChannel(address, function (channel) {
+        console.log('got channel: ' + channel);
+        BTDevices.push({ address: address, name: name, channel: channel });
+    });
+});
+
+BTserial.on('failure', function (err) {
+    console.log('failure: ' + err)
+});
+
+BTserial.on('finished', function () {
+    console.log('finished searching')
+})
+
+var dataBuffer = "";
+BTserial.on('data', function (buffer) {
+    dataBuffer = dataBuffer + buffer.toString('utf8');
+    if (dataBuffer.indexOf("\n") != -1) {
+        //getFromRobot(dataBuffer.slice(0, 1));
+        console.log('data buffer [' + dataBuffer);
+        dataBuffer = "";
+    }
+
+});
+
+console.log('BTserial.inquire()');
+BTserial.inquire();
+*/
+
+var serviceUUIDs = []; //["90:59:AF:0B:83:4A"]; //["<service UUID 1>", ...]; // default: [] => all
+var allowDuplicates = false;
+
+noble.startScanning(serviceUUIDs, allowDuplicates); // particular UUID's
+
+noble.on('discover', function (peripheral) {
+    console.log('found: ' + peripheral);
+
+    // connect to whatever this is (sensortag)
+    peripheral.connect(function (err) {
+        console.log('connect: err = ' + err);
+    });
+
+    // peripheral callbacks
+
+    peripheral.on('connect', function () {
+        console.log('peripheral on connected');
+
+        peripheral.updateRssi(function (err, rssi) {
+            console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
+        });
+
+        peripheral.discoverAllServicesAndCharacteristics(function (err, services, characteristics) {
+            console.log('discoverAllServicesAndCharacteristics: err = ' + err + ', services = ' + services + ', characteristics = ' + characteristics);
+        });
+    });
+
+    peripheral.on('rssiUpdate', function (rssi) {
+        console.log('peripheral on rssiUpdate: rssi = ' + rssi);
+    });
+
+    peripheral.on('servicesDiscover', function (services) {
+        console.log('peripheral on servicesDiscover: services = ' + services);
+
+        // for particular service
+        /*
+        service.on('includedServicesDiscover', function (includedServiceUuids) {
+            console.log('service on includedServicesDiscover: includedServiceUuids = ' + includedServiceUuids);
+        });
+
+        service.on('characteristicsDiscover', function (characteristics) {
+            console.log('service on characteristicsDiscover: characteristics = ' + characteristics);
+        });
+        */
+    });
+
 });
