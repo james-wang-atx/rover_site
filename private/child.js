@@ -35,6 +35,7 @@ function DiscoverSensorTag(tagUUID) {
             sensorTag.connect(function () {
                 console.log('connected to sensortag!');
 
+                /*
                 sensorTag._peripheral.updateRssi(function (err, rssi) {
                     console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
                 });
@@ -54,6 +55,7 @@ function DiscoverSensorTag(tagUUID) {
                     });
 
                 });
+                */
             });
         }
 
@@ -62,3 +64,20 @@ function DiscoverSensorTag(tagUUID) {
     }, tagUUID
     );
 };
+
+function childProcesses() {
+    if (mySensorTag !== null) {
+        mySensorTag._peripheral.on('rssiUpdate', function (rssi) {
+            console.log('peripheral on rssiUpdate: rssi = ' + rssi);
+        });
+        mySensorTag._peripheral.updateRssi(function (err, rssi) {
+            console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
+        });
+    }
+}
+
+function startTimer() {
+    setInterval(childProcesses, 1000);
+}
+
+startTimer();
