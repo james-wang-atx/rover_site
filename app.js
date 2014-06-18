@@ -109,6 +109,20 @@ app.get('/uss/front', function (req, res) {
   res.end();
 })
 
+var last_rssi = 'unknown';
+
+app.get('/bt/rssi', function (req, res) {
+
+    res.set({
+        'Content-Type': 'text/plain'
+    });
+
+    res.writeHead(200);
+    res.write(last_rssi);
+    res.end();
+})
+
+
 // route root request to render 'index' view, with 'title' argument passed to view engine (jade)
 app.get('/rover', function (req, res) {
   
@@ -422,7 +436,10 @@ var MY_SENSOR_TAG_UUID = '9059af0b834a';
 var n = cp.fork(__dirname + '/private/child.js');
 
 n.on('message', function (m) {
-    console.log('PARENT got message:', m);
+    //console.log('PARENT got message:', m);
+    if (typeof m.rssi !== 'undefined') {
+        last_rssi = '' + m.rssi;
+    }
 });
 
 n.send({ hello: 'world',

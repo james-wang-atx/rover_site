@@ -8,13 +8,32 @@ var lastRSSI            = null;
 
 /////////////////////////////////////////////////////////////////////////////////
 
-var StateGeneratedEvent = null;
-var StateGeneratedEventArg = null;
+///////////////////////////////////
+// State Transition variable     //
+///////////////////////////////////
+var NextStateMachineEvent     = null;
+var NextStateMachineEventArg  = null;
 
-function clearStateGeneratedEvent() {
-    StateGeneratedEvent = null;
-    StateGeneratedEventArg = null;
+function clearNextStateMachineEvent() {
+    NextStateMachineEvent    = null;
+    NextStateMachineEventArg = null;
 }
+
+/////////////////////////////////////////////////
+// Command variable which will take precedence //
+//   over State Transition variable            //
+/////////////////////////////////////////////////
+var CommandGeneratedEvent    = null;
+var CommandGeneratedEventArg = null;
+
+function clearCommandGeneratedEvent() {
+    CommandGeneratedEvent    = null;
+    CommandGeneratedEventArg = null;
+}
+
+///////////////////////////////////////////////////////////////
+// State functions                                           //
+///////////////////////////////////////////////////////////////
 
 function stateFunction_idle_entry( arg ) {
     console.log('stateFunction_idle_entry... arg=' + arg);
@@ -27,8 +46,8 @@ function stateFunction_connect_entry( arg ) {
     console.log('stateFunction_connect_entry... arg=' + arg);
     if (typeof arg === "undefined" || arg === 'null') {
         //error! cannot enter this state without giving SensorTag UUID to connect to.
-        StateGeneratedEvent = 'error';
-        StateGeneratedEventArg = null;
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
         return;
     }
 
@@ -39,14 +58,19 @@ function stateFunction_connect_exit( arg ) {
     console.log('stateFunction_connect_exit... arg=' + arg);
 }
 
+var last_rssi = null;
+
 function stateFunction_poll_rssi_entry( arg ) {
     console.log('stateFunction_poll_rssi_entry... arg=' + arg + ', mySensorTag=' + mySensorTag);
     mySensorTag._peripheral.updateRssi(function (err, rssi) {
-        console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
+        last_rssi = rssi;
+        //console.log('updateRssi: err = ' + err + ', rssi = ' + last_rssi);
+        process.send({ rssi: last_rssi });
     });
-    // for now, poll again
-    StateGeneratedEvent = 'poll';
-    StateGeneratedEventArg = null;
+
+    // default behavior --> poll again
+    NextStateMachineEvent    = 'poll';
+    NextStateMachineEventArg = null;
 }
 function stateFunction_poll_rssi_exit( arg ) {
     console.log('stateFunction_poll_rssi_exit... arg=' + arg);
@@ -65,6 +89,10 @@ function stateFunction_get_temperature_entry( arg ) {
 function stateFunction_get_temperature_exit( arg ) {
     console.log('stateFunction_get_temperature_exit... arg=' + arg);
 }
+
+////////////////////////////////////
+// Main States array              //
+////////////////////////////////////
 
 states = [
     {
@@ -145,8 +173,8 @@ function StateMachine( statesArray ) {
         //   same event over-and-over.  This event variable holder cannot be cleared externally, since
         //   the 'entry' and 'exit' functions for each state may or may not set the variable again.
         if( clearStateGenerated === true ) {
-            console.log('notifyEvent: calling clearStateGeneratedEvent()');
-            clearStateGeneratedEvent();
+            console.log('notifyEvent: calling clearNextStateMachineEvent()');
+            clearNextStateMachineEvent();
         }
 
 		if( this.currentState.events[ SMEName ] ) {
@@ -164,7 +192,9 @@ function StateMachine( statesArray ) {
                 // call the new state's entry function
                 this.currentState.state_functions['entry']( arg );
             }
-		}
+		} else {
+            console.log('notifyEvent: Current: ' + this.currentState.name + ', IGNORING event: ' + SMEName );
+        }
 	}
 
 	this.getStatus = function(){
@@ -204,12 +234,6 @@ process.on('message', function (m) {
         if( sm.getStatus() === 'idle' ) {
             sm.notifyEvent('start', false, m.myTag);
         }
-        //console.log('bools: ' + (discoveryInProgress === false) + ', ' + (mySensorTag === null));
-        //if (discoveryInProgress === false && mySensorTag === null) {
-        //    DiscoverSensorTag(m.myTag);
-        //}
-    } else {
-        console.log('CHILD: no sensor tag UUID given by parent');
     }
 });
 
@@ -230,8 +254,8 @@ function DiscoverSensorTagAndConnect(tagUUID) {
                 console.log('connected to sensortag!');
 
                 // setup event for next state
-                StateGeneratedEvent = 'connect_success';
-                StateGeneratedEventArg = null;
+                NextStateMachineEvent = 'connect_success';
+                NextStateMachineEventArg = null;
             });
         }
     }, tagUUID
@@ -288,9 +312,17 @@ function DiscoverSensorTag(tagUUID) {
 
 
 function smStrobe() {
-    if( StateGeneratedEvent !== null ) {
-        // setting 2nd arg to true to avoid notifying of same event erroneously
-        sm.notifyEvent(StateGeneratedEvent, true, StateGeneratedEventArg);
+
+    // inject external event into the state machine
+    if(CommandGeneratedEvent !== null) {
+        NextStateMachineEvent    = CommandGeneratedEvent;
+        NextStateMachineEventArg = CommandGeneratedEventArg;
+        clearCommandGeneratedEvent();
+    }
+
+    if( NextStateMachineEvent !== null ) {
+        // setting 2nd arg to true to clear the event (prevent doing it again)
+        sm.notifyEvent(NextStateMachineEvent, true, NextStateMachineEventArg);
     }
 }
 

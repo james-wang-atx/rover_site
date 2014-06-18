@@ -16,6 +16,7 @@ function displayImage() {
 
   LoadTextAreaFromUrl("/uss/front", document.getElementById("UltrasonicFront"));
   LoadTextAreaFromUrl("/uss/rear", document.getElementById("UltrasonicRear"));
+  LoadTextAreaFromUrl("/bt/rssi", document.getElementById("RSSI"));
 }
 
 function startTimer() {
@@ -30,7 +31,6 @@ startTimer();
 
 function LoadTextAreaFromUrl(url, el) {
     $.get(url, null, function (data) {
-        //        el.val(data);
         el.value = data;
     }, "text");
 }
