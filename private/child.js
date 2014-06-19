@@ -1,12 +1,10 @@
-var fs = require('/usr/lib/node_modules/fs-ext/fs-ext.js');
-var bone = require('bonescript');
-var noble = require('noble');
+var fs        = require('/usr/lib/node_modules/fs-ext/fs-ext.js');
+var bone      = require('bonescript');
+var noble     = require('noble');
 var SensorTag = require('sensortag');
 
-var mySensorTag         = null;
-var lastRSSI            = null;
-
-/////////////////////////////////////////////////////////////////////////////////
+var mySensorTag = null;
+var lastRSSI    = null;
 
 ///////////////////////////////////
 // State Transition variable     //
@@ -183,7 +181,8 @@ states = [
         'name':'get_temperature',
         'events': {
             'error': 'poll_rssi',
-            'get_success': 'poll_rssi'
+            'get_success': 'poll_rssi',
+            'get_temp': 'get_temperature'
         },
         'state_functions' : {
             'entry': stateFunction_get_temperature_entry,
@@ -191,6 +190,10 @@ states = [
         }
     }
 ];
+
+///////////////////////////////////////
+// State Machine constructor         //
+///////////////////////////////////////
 
 function StateMachine( statesArray ) {
 	this.states = statesArray;
@@ -240,31 +243,15 @@ function StateMachine( statesArray ) {
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////
+// Create the State Machine object //
+/////////////////////////////////////
 
 sm = new StateMachine(states);
-console.log('sm.getStatus() = ' + sm.getStatus());
 
-/*
-sm.notifyEvent('start', false, 'MYTAGUUID');
-console.log('sm.getStatus() = ' + sm.getStatus());
-
-sm.notifyEvent('connect_success');
-console.log('sm.getStatus() = ' + sm.getStatus());
- 
-sm.notifyEvent('get_temp');
-console.log('sm.getStatus() = ' + sm.getStatus());
- 
-sm.notifyEvent('get_success')
-console.log('sm.getStatus() = ' + sm.getStatus());
-
-sm.notifyEvent('disconnect')
-console.log('sm.getStatus() = ' + sm.getStatus());
-*/
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-//var discoveryInProgress = false;
+///////////////////////////////////////////////////////////
+// Process Message Handler (Messages from Parent app.js) //
+///////////////////////////////////////////////////////////
 
 process.on('message', function (m) {
     console.log('CHILD got message:', m);
@@ -274,7 +261,7 @@ process.on('message', function (m) {
         }
     } else if( m.command !== 'undefined') {
         if(m.command === 'get_temp') {
-            //TODO: gotta mutex the timer pop
+            //TODO: mutex the exclude timer function?
             CommandGeneratedEvent = 'get_temp';
             CommandGeneratedEventArg = null;
         }
@@ -283,77 +270,9 @@ process.on('message', function (m) {
 
 process.send({ foo: 'bar' });
 
-////////////////////////////////////////////////////////////////////////////////////////
-function DiscoverSensorTagAndConnect(tagUUID) {
-    console.log('DiscoverSensorTagAndConnect(' + tagUUID + ')');
-    SensorTag.discover(function (sensorTag) {
-        console.log('SensorTag.discover: sensorTag = ' + sensorTag);
-
-        if (sensorTag.uuid.toLowerCase() === tagUUID) {
-            console.log('found my sensortag!');
-
-            mySensorTag = sensorTag;
-
-            sensorTag.connect(function () {
-                console.log('connected to sensortag!');
-
-                // setup event for next state
-                NextStateMachineEvent = 'connect_success';
-                NextStateMachineEventArg = null;
-            });
-        }
-    }, tagUUID
-    );
-};
-
-/*
-function DiscoverSensorTag(tagUUID) {
-    console.log('DiscoverSensorTag(' + tagUUID + '): setting discoveryInProgress = true');
-    discoveryInProgress = true;
-    SensorTag.discover(function (sensorTag) {
-        console.log('SensorTag.discover: sensorTag = ' + sensorTag);
-
-        // defer this till connected?
-        mySensorTag = sensorTag;
-
-        if (sensorTag.uuid.toLowerCase() === tagUUID) {
-            console.log('found my sensortag!');
-
-            sensorTag.connect(function () {
-                console.log('connected to sensortag!');
-*/
-                /*
-                sensorTag._peripheral.updateRssi(function (err, rssi) {
-                    console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
-                });
-
-                sensorTag._peripheral.on('rssiUpdate', function (rssi) {
-                    console.log('peripheral on rssiUpdate: rssi = ' + rssi);
-
-                    sensorTag.discoverServicesAndCharacteristics(function () {
-                        console.log('discovered characteristics');
-
-                        sensorTag.enableIrTemperature(function () {
-                            console.log('enabled temperature in sensortag!');
-                            sensorTag.readIrTemperature(function (objectTemperature, ambientTemperature) {
-                                console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
-                            });
-                        });
-                    });
-
-                });
-                */
-/*
-            });
-        }
-
-        console.log('DiscoverSensorTag(' + tagUUID + '): setting discoveryInProgress = false');
-        discoveryInProgress = false;
-    }, tagUUID
-    );
-};
-*/
-
+//////////////////////////////////////////////
+// Timer-based strobe for the State Machine //
+//////////////////////////////////////////////
 
 function smStrobe() {
 
@@ -376,3 +295,28 @@ function startTimer() {
 
 startTimer();
 
+///////////////////////////////////////////////////////////////////
+// Helper functions                                              //
+///////////////////////////////////////////////////////////////////
+
+function DiscoverSensorTagAndConnect(tagUUID) {
+    console.log('DiscoverSensorTagAndConnect(' + tagUUID + ')');
+    SensorTag.discover(function (sensorTag) {
+        console.log('SensorTag.discover: sensorTag = ' + sensorTag);
+
+        if (sensorTag.uuid.toLowerCase() === tagUUID) {
+            console.log('found my sensortag!');
+
+            mySensorTag = sensorTag;
+
+            sensorTag.connect(function () {
+                console.log('connected to sensortag!');
+
+                // setup event for next state
+                NextStateMachineEvent = 'connect_success';
+                NextStateMachineEventArg = null;
+            });
+        }
+    }, tagUUID
+    );
+};

@@ -45,10 +45,7 @@ app.use(stylus.middleware(
 // static file requests go to this directory
 app.use(express.static(__dirname + '/public'))
 
-
 var temperature = { object: '', ambient: '' };
-
-//function puts(error, stdout, stderr) { sys.puts(stdout); }
 
 var LastFrontUSSReading = '';
 var LastRearUSSReading = '';
@@ -294,14 +291,12 @@ app.post('/control*', function (req, res) {
     res.end();
 })
 
-/*
-'sh' == LOCK_SH == Shared lock (for reading)
-'ex' == LOCK_EX == Exclusive lock (for writing)
-'nb' == LOCK_NB == Non-blocking request
-'un' == LOCK_UN == Free the lock
-'shnb' == LOCK_SH | LOCK_NB
-'exnb' == LOCK_EX | LOCK_NB
-*/
+// 'sh' == LOCK_SH == Shared lock (for reading)
+// 'ex' == LOCK_EX == Exclusive lock (for writing)
+// 'nb' == LOCK_NB == Non-blocking request
+// 'un' == LOCK_UN == Free the lock
+// 'shnb' == LOCK_SH | LOCK_NB
+// 'exnb' == LOCK_EX | LOCK_NB
 app.get('/snapshot', function (req, res) {
   var fd = fs.openSync(__dirname + '/private/snapshot.lockfile', 'r');
 
@@ -374,7 +369,10 @@ app.get('/snapshot', function (req, res) {
 
 })
 
-// Startup the server
+///////////////////////////
+// Startup the webserver //
+///////////////////////////
+
 var server = http.createServer(app);
 
 server.listen(app.get('port'), function () {
@@ -382,59 +380,9 @@ server.listen(app.get('port'), function () {
     process.title = 'rover_site';
 });
 
-
-/*
-var serviceUUIDs = []; //["90:59:AF:0B:83:4A"]; //["<service UUID 1>", ...]; // default: [] => all
-var allowDuplicates = false;
-
-noble.startScanning(serviceUUIDs, allowDuplicates); // particular UUID's
-
-noble.on('discover', function (peripheral) {
-    console.log('found: ' + peripheral);
-    //console.log('uuid: ' + peripheral.uuid);
-    if (peripheral.uuid.toLowerCase() === MY_SENSOR_TAG_UUID) {
-        console.log('found my sensortag!');
-    }
-    // connect to whatever this is (sensortag)
-    peripheral.connect(function (err) {
-        console.log('connect: err = ' + err);
-    });
-
-    // peripheral callbacks
-
-    peripheral.on('connect', function () {
-        console.log('peripheral on connected');
-
-        peripheral.updateRssi(function (err, rssi) {
-            console.log('updateRssi: err = ' + err + ', rssi = ' + rssi);
-        });
-
-        //peripheral.discoverAllServicesAndCharacteristics(function (err, services, characteristics) {
-        //    console.log('discoverAllServicesAndCharacteristics: err = ' + err + ', services = ' + services + ', characteristics = ' + characteristics);
-        //});
-    });
-
-    peripheral.on('rssiUpdate', function (rssi) {
-        console.log('peripheral on rssiUpdate: rssi = ' + rssi);
-    });
-
-    peripheral.on('servicesDiscover', function (services) {
-        console.log('peripheral on servicesDiscover: services = ' + services);
-
-        // for particular service
-        
-        //service.on('includedServicesDiscover', function (includedServiceUuids) {
-        //console.log('service on includedServicesDiscover: includedServiceUuids = ' + includedServiceUuids);
-        //});
-
-        //service.on('characteristicsDiscover', function (characteristics) {
-        //console.log('service on characteristicsDiscover: characteristics = ' + characteristics);
-        //});
-        
-    });
-
-});
-*/
+//////////////////////////////////////////////////////////////////////////////
+// Startup the V8 child process that contains the operational State Machine //
+//////////////////////////////////////////////////////////////////////////////
 
 var MY_SENSOR_TAG_UUID = '9059af0b834a';
 
@@ -453,9 +401,7 @@ n.on('message', function (m) {
             });
 
             outstanding_response.writeHead(200);
-            //outstanding_response.write('' + temperature.object + ' ' + temperature.ambient);
-            outstanding_response.write('' + parseFloat(temperature.object).toFixed(3) + ', ' + parseFloat(temperature.ambient).toFixed(3));
-            
+            outstanding_response.write('' + parseFloat(temperature.object).toFixed(3) + ', ' + parseFloat(temperature.ambient).toFixed(3));            
             outstanding_response.end();
         }
     }
