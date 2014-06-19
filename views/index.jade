@@ -25,7 +25,7 @@ block sidebar
     p
       form(id="tempForm", action="/rover?gettemp=true", method="get")
         input(type='submit',value='READ Temperature')
-        textarea(id="tempText", name="tempText", rows=1, cols=30)
+        input(id='tempText',name="tempText",type='text',value='',placeholder=' ')
     h1 Testing LED USR3
     form
       button(name="ledbutton" type="submit" value="on") LED on

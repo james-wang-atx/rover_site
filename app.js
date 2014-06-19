@@ -453,7 +453,9 @@ n.on('message', function (m) {
             });
 
             outstanding_response.writeHead(200);
-            outstanding_response.write(''+temperature.object+' '+temperature.ambient);
+            //outstanding_response.write('' + temperature.object + ' ' + temperature.ambient);
+            outstanding_response.write('' + parseFloat(temperature.object).toFixed(3) + ', ' + parseFloat(temperature.ambient).toFixed(3));
+            
             outstanding_response.end();
         }
     }
