@@ -34,3 +34,14 @@ function LoadTextAreaFromUrl(url, el) {
         el.value = data;
     }, "text");
 }
+
+
+$("#tempForm").submit(
+		function (event) {
+
+		    console.log('override ......................................................');
+		    /* stop form from submitting normally */
+		    event.preventDefault();
+
+		    LoadTextAreaFromUrl("/rover?gettemp=true", document.getElementById("tempText"));
+		});

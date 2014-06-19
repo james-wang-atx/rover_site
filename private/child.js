@@ -83,8 +83,28 @@ function stateFunction_disconnect_exit( arg ) {
     console.log('stateFunction_disconnect_exit... arg=' + arg);
 }
 
+var temperature = { object: '', ambient: '' };
+
 function stateFunction_get_temperature_entry( arg ) {
     console.log('stateFunction_get_temperature_entry... arg=' + arg);
+    mySensorTag.discoverServicesAndCharacteristics(function () {
+        console.log('discovered characteristics');
+
+        mySensorTag.enableIrTemperature(function () {
+            console.log('enabled temperature in sensortag!');
+            mySensorTag.readIrTemperature(function (objectTemperature, ambientTemperature) {
+                console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
+                temperature.object = objectTemperature;
+                temperature.ambient = ambientTemperature;
+                process.send({ temperature: temperature });
+
+                // transition to next state only upon success...or timeout?
+                NextStateMachineEvent    = 'get_success';
+                NextStateMachineEventArg = null;
+
+            });
+        });
+    });
 }
 function stateFunction_get_temperature_exit( arg ) {
     console.log('stateFunction_get_temperature_exit... arg=' + arg);
@@ -233,6 +253,12 @@ process.on('message', function (m) {
     if (typeof m.hello !== 'undefined' && typeof m.myTag !== 'undefined') {
         if( sm.getStatus() === 'idle' ) {
             sm.notifyEvent('start', false, m.myTag);
+        }
+    } else if( m.command !== 'undefined') {
+        if(m.command === 'get_temp') {
+            //TODO: gotta mutex the timer pop
+            CommandGeneratedEvent = 'get_temp';
+            CommandGeneratedEventArg = null;
         }
     }
 });

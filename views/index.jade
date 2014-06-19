@@ -23,9 +23,9 @@ block sidebar
       | Water Detection - [false]
     h1 SensorTag Data
     p
-      | Temperature - [70 degrees (F)]
-    p
-      | other data...
+      form(id="tempForm", action="/rover?gettemp=true", method="get")
+        input(type='submit',value='READ')
+      textarea(id="tempText", name="tempText", rows=1)
     h1 Testing LED USR3
     form
       button(name="ledbutton" type="submit" value="on") LED on
@@ -93,3 +93,11 @@ block sidebar
         textarea(id="RSSI", name="RSSI", rows=1)
             | unknown
         button(id="RWK", name="RWK") RWK
+
+    script(type="text/javascript").
+      $("#tempForm").submit(
+            function (event) {
+                console.log('override ......................................................');
+                event.preventDefault();
+                LoadTextAreaFromUrl("/rover?gettemp=true", document.getElementById("tempText"));
+      });

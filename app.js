@@ -46,7 +46,9 @@ app.use(stylus.middleware(
 app.use(express.static(__dirname + '/public'))
 
 
-function puts(error, stdout, stderr) { sys.puts(stdout); }
+var temperature = { object: '', ambient: '' };
+
+//function puts(error, stdout, stderr) { sys.puts(stdout); }
 
 var LastFrontUSSReading = '';
 var LastRearUSSReading = '';
@@ -110,6 +112,8 @@ app.get('/uss/front', function (req, res) {
 })
 
 var last_rssi = 'unknown';
+var last_object_temperature = 'unknown';
+var last_ambient_temperature = 'unknown';
 
 app.get('/bt/rssi', function (req, res) {
 
@@ -122,34 +126,35 @@ app.get('/bt/rssi', function (req, res) {
     res.end();
 })
 
+var outstanding_response = null;
 
 // route root request to render 'index' view, with 'title' argument passed to view engine (jade)
 app.get('/rover', function (req, res) {
-  
-  console.log('/rover - req.url=' + req.url);
 
-  if (req.url == "/rover?ledbutton=on") 
-  { 
-    console.log('ON REQ');
-    bone.digitalWrite(whichButton, bone.HIGH);
+    console.log('/rover - req.url=' + req.url);
 
-    //sys.puts('calling hcitool...');
-    //exec("ls", puts);
+    if (req.url == "/rover?ledbutton=on") {
+        console.log('ON REQ');
+        bone.digitalWrite(whichButton, bone.HIGH);
+        res.writeHead(204);
+        res.end();
+    }
+    else if (req.url == "/rover?ledbutton=off") {
+        console.log('OFF REQ');
+        bone.digitalWrite(whichButton, bone.LOW);
+        res.writeHead(204);
+        res.end();
+    }
+    else if (req.url == "/rover?gettemp=true") {
+        console.log('GET TEMPERATURE');
 
+        n.send({ command: 'get_temp' });
 
-    res.writeHead(204);
-    res.end();
-  } 
-  else if (req.url == "/rover?ledbutton=off") {
-    console.log('OFF REQ');
-    bone.digitalWrite(whichButton, bone.LOW); 
-    res.writeHead(204);
-    res.end();
-  }
-  else
-  {
-    res.render('index', { title : 'Security and Safety Rover' } )
-  }
+        outstanding_response = res;
+    }
+    else {
+        res.render('index', { title: 'Security and Safety Rover' })
+    }
 })
 
 
@@ -439,6 +444,18 @@ n.on('message', function (m) {
     //console.log('PARENT got message:', m);
     if (typeof m.rssi !== 'undefined') {
         last_rssi = '' + m.rssi;
+    } else if (typeof m.temperature !== 'undefined') {
+        temperature = m.temperature;
+        if (outstanding_response !== null) {
+
+            outstanding_response.set({
+                'Content-Type': 'text/plain'
+            });
+
+            outstanding_response.writeHead(200);
+            outstanding_response.write(''+temperature.object+' '+temperature.ambient);
+            outstanding_response.end();
+        }
     }
 });
 
