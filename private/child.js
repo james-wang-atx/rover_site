@@ -84,27 +84,45 @@ function stateFunction_disconnect_exit( arg ) {
 }
 
 var temperature = { object: '', ambient: '' };
+var tempSensorEnabled = false;
 
 function stateFunction_get_temperature_entry( arg ) {
     console.log('stateFunction_get_temperature_entry... arg=' + arg);
-    mySensorTag.discoverServicesAndCharacteristics(function () {
-        console.log('discovered characteristics');
 
-        mySensorTag.enableIrTemperature(function () {
-            console.log('enabled temperature in sensortag!');
-            mySensorTag.readIrTemperature(function (objectTemperature, ambientTemperature) {
-                console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
-                temperature.object = objectTemperature;
-                temperature.ambient = ambientTemperature;
-                process.send({ temperature: temperature });
+    if(tempSensorEnabled === false) {
+        mySensorTag.discoverServicesAndCharacteristics(function () {
+            console.log('discovered characteristics');
 
-                // transition to next state only upon success...or timeout?
-                NextStateMachineEvent    = 'get_success';
-                NextStateMachineEventArg = null;
+            mySensorTag.enableIrTemperature(function () {
+                
+                tempSensorEnabled = true;
+                console.log('enabled temperature in sensortag!');
 
+                mySensorTag.readIrTemperature(function (objectTemperature, ambientTemperature) {
+                    console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
+                    temperature.object = objectTemperature;
+                    temperature.ambient = ambientTemperature;
+                    process.send({ temperature: temperature });
+
+                    // transition to next state only upon success...or timeout?
+                    NextStateMachineEvent    = 'get_success';
+                    NextStateMachineEventArg = null;
+
+                });
             });
         });
-    });
+    } else {
+        mySensorTag.readIrTemperature(function (objectTemperature, ambientTemperature) {
+            console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
+            temperature.object = objectTemperature;
+            temperature.ambient = ambientTemperature;
+            process.send({ temperature: temperature });
+
+            // transition to next state only upon success...or timeout?
+            NextStateMachineEvent    = 'get_success';
+            NextStateMachineEventArg = null;
+        });
+    }
 }
 function stateFunction_get_temperature_exit( arg ) {
     console.log('stateFunction_get_temperature_exit... arg=' + arg);
