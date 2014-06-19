@@ -92,7 +92,8 @@ block sidebar
     div
         textarea(id="RSSI", name="RSSI", rows=1)
             | unknown
-        button(id="RWK", name="RWK") RWK
+        form
+            button(id="RWK", name="RWK" type="submit" value="on") RWK
 
     script(type="text/javascript").
       $("#tempForm").submit(

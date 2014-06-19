@@ -33,6 +33,7 @@ function clearCommandGeneratedEvent() {
 // State functions                                           //
 ///////////////////////////////////////////////////////////////
 
+// idle
 function stateFunction_idle_entry( arg ) {
     console.log('stateFunction_idle_entry... arg=' + arg);
 }
@@ -40,6 +41,7 @@ function stateFunction_idle_exit( arg ) {
     console.log('stateFunction_idle_exit... arg=' + arg);
 }
 
+// connect
 function stateFunction_connect_entry( arg ) {
     console.log('stateFunction_connect_entry... arg=' + arg);
     if (typeof arg === "undefined" || arg === 'null') {
@@ -58,6 +60,7 @@ function stateFunction_connect_exit( arg ) {
 
 var last_rssi = null;
 
+// poll_rssi
 function stateFunction_poll_rssi_entry( arg ) {
     console.log('stateFunction_poll_rssi_entry... arg=' + arg + ', mySensorTag=' + mySensorTag);
     mySensorTag._peripheral.updateRssi(function (err, rssi) {
@@ -74,6 +77,7 @@ function stateFunction_poll_rssi_exit( arg ) {
     console.log('stateFunction_poll_rssi_exit... arg=' + arg);
 }
 
+// disconnect
 function stateFunction_disconnect_entry( arg ) {
     console.log('stateFunction_disconnect_entry... arg=' + arg);
 }
@@ -84,6 +88,7 @@ function stateFunction_disconnect_exit( arg ) {
 var temperature = { object: '', ambient: '' };
 var tempSensorEnabled = false;
 
+// get_temperature
 function stateFunction_get_temperature_entry( arg ) {
     console.log('stateFunction_get_temperature_entry... arg=' + arg);
 
@@ -126,6 +131,67 @@ function stateFunction_get_temperature_exit( arg ) {
     console.log('stateFunction_get_temperature_exit... arg=' + arg);
 }
 
+// random_step
+function stateFunction_random_step_entry( arg ) {
+    console.log('stateFunction_random_step_entry... arg=' + arg + '(current rssi)');
+
+    // TODO: RANDOM TURN AND THEN FWD
+
+    NextStateMachineEvent    = 'check_rssi_change';
+    NextStateMachineEventArg = arg; //forward the previous rssi
+}
+function stateFunction_random_step_exit( arg ) {
+    console.log('stateFunction_random_step_exit... arg=' + arg);
+}
+
+// poll_check_rssi
+function stateFunction_poll_check_rssi_entry( arg ) {
+    console.log('stateFunction_poll_check_rssi_entry... arg=' + arg + '(rssi before last step)');
+
+    var previous_rssi = arg;
+
+    // TODO: READ RSSI AND COMPARE TO arg
+
+    var current_rssi; //=?
+    
+    if( current_rssi <= previous_rssi ) { 
+        NextStateMachineEvent    = 'rssi_is_lower';
+    } else {
+        NextStateMachineEvent    = 'rssi_is_higher';
+    }
+
+    NextStateMachineEventArg = null;
+}
+function stateFunction_poll_check_rssi_exit( arg ) {
+    console.log('stateFunction_poll_check_rssi_exit... arg=' + arg);
+}
+
+// undo_step
+function stateFunction_undo_step_entry( arg ) {
+    console.log('stateFunction_undo_step_entry... arg=' + arg);
+
+    // TODO: GO BACKWARDS PRESCRIBED AMOUNT OF TIME
+
+    NextStateMachineEvent    = 'undo_done';;
+    NextStateMachineEventArg = null;
+}
+function stateFunction_undo_step_exit( arg ) {
+    console.log('stateFunction_undo_step_exit... arg=' + arg);
+}
+
+// random_walk_done
+function stateFunction_random_walk_done_entry( arg ) {
+    console.log('stateFunction_random_walk_done_entry... arg=' + arg);
+
+    // TODO: final docking procedure
+
+    NextStateMachineEvent    = 'dock_and_charge'; //spin here for now
+    NextStateMachineEventArg = null;
+}
+function stateFunction_random_walk_done_exit( arg ) {
+    console.log('stateFunction_random_walk_done_exit... arg=' + arg);
+}
+
 ////////////////////////////////////
 // Main States array              //
 ////////////////////////////////////
@@ -156,10 +222,10 @@ states = [
     {
         'name':'poll_rssi',
         'events':{
-            'error': 'disconnect',
             'disconnect': 'disconnect',
             'poll': 'poll_rssi',
-            'get_temp': 'get_temperature'
+            'get_temp': 'get_temperature',
+            'rnd_walk': 'random_step' // arg = current rssi
         },
         'state_functions' : {
             'entry': stateFunction_poll_rssi_entry,
@@ -187,6 +253,50 @@ states = [
         'state_functions' : {
             'entry': stateFunction_get_temperature_entry,
             'exit': stateFunction_get_temperature_exit
+        }
+    },
+    {
+        'name':'random_step',
+        'events': {
+            'error': 'poll_rssi',
+            'check_rssi_change': 'poll_check_rssi' // arg = rssi before step
+        },
+        'state_functions' : {
+            'entry': stateFunction_random_step_entry,
+            'exit': stateFunction_random_step_exit
+        }
+    },
+    {
+        'name':'poll_check_rssi',
+        'events': {
+            'rssi_is_higher': 'undo_step',
+            'rssi_is_lower': 'random_step',
+            'rssi_is_lowest': 'random_walk_done'
+        },
+        'state_functions' : {
+            'entry': stateFunction_poll_check_rssi_entry,
+            'exit': stateFunction_poll_check_rssi_exit
+        }
+    },
+    {
+        'name':'undo_step',
+        'events': {
+            'undo_done': 'random_step'
+        },
+        'state_functions' : {
+            'entry': stateFunction_undo_step_entry,
+            'exit': stateFunction_undo_step_exit
+        }
+    },
+    {
+        'name':'random_walk_done',
+        'events': {
+            'charge_done': 'poll_rssi',
+            'dock_and_charge': 'random_walk_done'
+        },
+        'state_functions' : {
+            'entry': stateFunction_random_walk_done_entry,
+            'exit': stateFunction_random_walk_done_exit
         }
     }
 ];
@@ -261,7 +371,8 @@ process.on('message', function (m) {
         }
     } else if( m.command !== 'undefined') {
         if(m.command === 'get_temp') {
-            //TODO: mutex the exclude timer function?
+            // since javascript and node.js is single threaded, we won't
+            //   need to mutex access to these globals
             CommandGeneratedEvent = 'get_temp';
             CommandGeneratedEventArg = null;
         }
@@ -320,3 +431,4 @@ function DiscoverSensorTagAndConnect(tagUUID) {
     }, tagUUID
     );
 };
+
