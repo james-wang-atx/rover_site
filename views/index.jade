@@ -24,8 +24,8 @@ block sidebar
     h1 SensorTag Data
     p
       form(id="tempForm", action="/rover?gettemp=true", method="get")
-        input(type='submit',value='READ')
-      textarea(id="tempText", name="tempText", rows=1)
+        input(type='submit',value='READ Temperature')
+        textarea(id="tempText", name="tempText", rows=1, cols=30)
     h1 Testing LED USR3
     form
       button(name="ledbutton" type="submit" value="on") LED on
@@ -97,7 +97,6 @@ block sidebar
     script(type="text/javascript").
       $("#tempForm").submit(
             function (event) {
-                console.log('override ......................................................');
                 event.preventDefault();
                 LoadTextAreaFromUrl("/rover?gettemp=true", document.getElementById("tempText"));
       });
