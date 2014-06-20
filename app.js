@@ -168,6 +168,8 @@ app.post('/control*', function (req, res) {
         motor.turnleft(req.body.LDUTY, req.body.LTIME);
     } else if (req.url == "/control?dir=RGT") {
         motor.turnright(req.body.RDUTY, req.body.RTIME);
+    } else if (req.url == "/control?RWK=ON") {
+        n.send({ command: 'random_walk' });
     }
 
     res.writeHead(204);

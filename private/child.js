@@ -378,6 +378,8 @@ process.on('message', function (m) {
             CommandGeneratedEventArg = null;
 
             //MotorsForward( 0.4, 500 );
+        } else if(m.command === 'random_walk') {
+            //enable SM
         }
     }
 });
