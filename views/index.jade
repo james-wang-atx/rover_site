@@ -82,6 +82,9 @@ block sidebar
                    input(id='BDUTY',type='text',value='0.4',placeholder='0.4',name='BDUTY')
             div(data-role='fieldcontain')   
               input(type='submit',value='BCK',data-transition='fade', data-theme='c')
+        form(name="ControlInput", action="/control?RWK=ON", method="post")
+          div(data-role='fieldcontain')   
+            input(type='submit',value='RWK',data-transition='fade', data-theme='c')
     h1 Ultrasonic Sensors
     div
         textarea(id="UltrasonicFront", name="UltrasonicFront", rows=1)
@@ -92,8 +95,6 @@ block sidebar
     div
         textarea(id="RSSI", name="RSSI", rows=1)
             | unknown
-        form
-            button(id="RWK", name="RWK" type="submit" value="on") RWK
 
     script(type="text/javascript").
       $("#tempForm").submit(

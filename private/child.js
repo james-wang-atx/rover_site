@@ -2,6 +2,7 @@ var fs        = require('/usr/lib/node_modules/fs-ext/fs-ext.js');
 var bone      = require('bonescript');
 var noble     = require('noble');
 var SensorTag = require('sensortag');
+var motor     = require('./motor');
 
 var mySensorTag = null;
 var lastRSSI    = null;
