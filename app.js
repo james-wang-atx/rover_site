@@ -10,6 +10,7 @@ var bone    = require('bonescript');
 var sys     = require('sys');
 var cp      = require('child_process');
 var exec    = cp.exec;
+var motor   = require('./private/motor');
 
 bone.pinMode("USR3", bone.OUTPUT);
 var whichButton = 'USR3';
@@ -155,7 +156,7 @@ app.get('/rover', function (req, res) {
 })
 
 
-
+/*
 function doNothing() {
 }
 
@@ -231,12 +232,28 @@ function validateDuty(duty) {
     return duty;
 }
 
+function MotorsForward(reqDutyFloat, reqTimeMs) {
+    P9_14_Off();
+    P8_19_Off();
+
+    var duty = validateDuty(reqDutyFloat);
+    var duty2 = validateDuty(reqDutyFloat - 0.2);
+
+    //console.log('duty = ' + duty + ', duty2 = ' + duty2);
+
+    bone.analogWriteEx('P9_16', duty2, 2000, schedule_P9_16_Off, reqTimeMs); //Left side fwd
+    bone.analogWriteEx('P8_13', duty, 2000, schedule_P8_13_Off, reqTimeMs);  //Right side fwd
+}
+*/
+
 // movement control request
 app.post('/control*', function (req, res) {
     console.log('POST req.url=' + req.url);
     console.log(req.body);
 
     if (req.url == "/control?dir=FWD") {
+        motor.forward(req.body.FDUTY, req.body.FTIME);
+        /*
         P9_14_Off();
         P8_19_Off();
 
@@ -253,19 +270,24 @@ app.post('/control*', function (req, res) {
 
         bone.analogWriteEx('P9_16', duty2, 2000, schedule_P9_16_Off, req.body.FTIME); //Left side fwd
         bone.analogWriteEx('P8_13', duty, 2000, schedule_P8_13_Off, req.body.FTIME); //Right side fwd
-
+        */
     } else if (req.url == "/control?dir=BCK") {
+        motor.reverse(req.body.BDUTY, req.body.BTIME);
+        /*
         P9_16_Off();
         P8_13_Off();
 
         // duty cycle percentabe must be between 0 and 1
-        var duty  = validateDuty(req.body.BDUTY);
+        var duty = validateDuty(req.body.BDUTY);
         var duty2 = validateDuty(duty - 0.2);
 
         console.log('req. duty = ' + duty);
         bone.analogWriteEx('P9_14', duty2, 2000, schedule_P9_14_Off, req.body.BTIME); //Left side back
         bone.analogWriteEx('P8_19', duty, 2000, schedule_P8_19_Off, req.body.BTIME);  //Right side back
+        */
     } else if (req.url == "/control?dir=LFT") {
+        motor.turnleft(req.body.LDUTY, req.body.LTIME);
+        /*
         P9_16_Off();
         P8_19_Off();
 
@@ -275,7 +297,10 @@ app.post('/control*', function (req, res) {
         console.log('req. duty = ' + duty);
         bone.analogWriteEx('P9_14', duty, 2000, schedule_P9_14_Off, req.body.LTIME); //Left side back
         bone.analogWriteEx('P8_13', duty, 2000, schedule_P8_13_Off, req.body.LTIME); //Right side fwd
+        */
     } else if (req.url == "/control?dir=RGT") {
+        motor.turnright(req.body.RDUTY, req.body.RTIME);
+        /*
         P9_14_Off();
         P8_13_Off();
 
@@ -285,6 +310,7 @@ app.post('/control*', function (req, res) {
         console.log('req. duty = ' + duty);
         bone.analogWriteEx('P9_16', duty, 2000, schedule_P9_16_Off, req.body.RTIME); //Left side fwd
         bone.analogWriteEx('P8_19', duty, 2000, schedule_P8_19_Off, req.body.RTIME); //Right side back
+        */
     }
 
     res.writeHead(204);

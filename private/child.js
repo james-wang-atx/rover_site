@@ -375,6 +375,8 @@ process.on('message', function (m) {
             //   need to mutex access to these globals
             CommandGeneratedEvent = 'get_temp';
             CommandGeneratedEventArg = null;
+
+            //MotorsForward( 0.4, 500 );
         }
     }
 });
