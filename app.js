@@ -49,20 +49,38 @@ app.use(express.static(__dirname + '/public'))
 var temperature = { object: '', ambient: '' };
 
 var LastFrontUSSReading = '';
-var LastRearUSSReading = '';
+var LastRearUSSReading  = '';
+
+var pendingUSSFront_Responses = [];
 
 function UpdateUSStatusFront(x) {
     var distanceInches;
     analogVoltage = x.value*1.8; // ADC Value converted to voltage
     //console.log('FRONT: x.value = ' + x.value + ', analogVoltage = ' + analogVoltage); 
-    
+
+    //1.8v/512 = 0.003515625
     distanceInches = analogVoltage / 0.003515625;
     
     //console.log("There is an object " +
     //parseFloat(distanceInches).toFixed(3) + " inches away.");
 
     LastFrontUSSReading = '' + parseFloat(distanceInches).toFixed(3);
+
+    while (pendingUSSFront_Responses.length > 0) {
+        res = pendingUSSFront_Responses.pop();
+
+        res.set({
+            'Content-Type': 'text/plain'
+        });
+
+        res.writeHead(200);
+        res.write(LastFrontUSSReading);
+
+        res.end();
+    }
 }
+
+var pendingUSSRear_Responses = [];
 
 function UpdateUSStatusRear(x) {
     var distanceInches;
@@ -75,38 +93,43 @@ function UpdateUSStatusRear(x) {
     //parseFloat(distanceInches).toFixed(3) + " inches away.");
 
     LastRearUSSReading = '' + parseFloat(distanceInches).toFixed(3);
-}
 
-function updateUltrasonics() {
-    //front
-    bone.analogRead('P9_40', UpdateUSStatusFront);
-    //rear
-    bone.analogRead('P9_38', UpdateUSStatusRear);
+    while (pendingUSSRear_Responses.length > 0) {
+        res = pendingUSSRear_Responses.pop();
+
+        res.set({
+            'Content-Type': 'text/plain'
+        });
+
+        res.writeHead(200);
+        res.write(LastRearUSSReading);
+
+        res.end();
+    }
 }
 
 app.get('/uss/rear', function (req, res) {
-  //console.log('/uss - req.url=' + req.url);
+    //console.log('/uss - req.url=' + req.url);
 
-  res.set({
-    'Content-Type': 'text/plain'
-  });
+    // save the response object into the array which is processed
+    //   in the analogRead() callback
+    pendingUSSRear_Responses.push(res);
 
-  res.writeHead(200);
-  res.write(LastRearUSSReading);  
-
-  res.end();
+    if (pendingUSSRear_Responses.length == 1) {
+        bone.analogRead('P9_38', UpdateUSStatusRear);
+    }
 })
 
 app.get('/uss/front', function (req, res) {
-  //console.log('/uss - req.url=' + req.url);
+    //console.log('/uss - req.url=' + req.url);
 
-  res.set({
-      'Content-Type': 'text/plain'
-  });
+    // save the response object into the array which is processed
+    //   in the analogRead() callback
+    pendingUSSFront_Responses.push(res);
 
-  res.writeHead(200);
-  res.write(LastFrontUSSReading);  
-  res.end();
+    if (pendingUSSFront_Responses.length == 1) {
+        bone.analogRead('P9_40', UpdateUSStatusFront);
+    }
 })
 
 var last_rssi = 'unknown';
@@ -185,7 +208,7 @@ app.post('/control*', function (req, res) {
 app.get('/snapshot', function (req, res) {
   var fd = fs.openSync(__dirname + '/private/snapshot.lockfile', 'r');
 
-  updateUltrasonics();
+  //updateUltrasonics();
 
   fs.flock(fd, 'sh', function (err) {
     if (err) {
