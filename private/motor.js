@@ -118,8 +118,8 @@ var turnright = function (reqDutyFloat, reqTimeMs) {
 };
 
 module.exports = {
-    forward: forward,
-    reverse: reverse,
-    turnleft: turnleft,
+    forward:   forward,
+    reverse:   reverse,
+    turnleft:  turnleft,
     turnright: turnright
 };

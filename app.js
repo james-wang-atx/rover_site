@@ -11,6 +11,7 @@ var sys     = require('sys');
 var cp      = require('child_process');
 var exec    = cp.exec;
 var motor   = require('./private/motor');
+var uss     = require('./private/uss');
 
 bone.pinMode("USR3", bone.OUTPUT);
 var whichButton = 'USR3';
@@ -54,18 +55,7 @@ var LastRearUSSReading  = '';
 var pendingUSSFront_Responses = [];
 
 function UpdateUSStatusFront(x) {
-    var distanceInches;
-    analogVoltage = x.value*1.8; // ADC Value converted to voltage
-    //console.log('FRONT: x.value = ' + x.value + ', analogVoltage = ' + analogVoltage); 
-
-    //1.8v/512 = 0.003515625
-    distanceInches = analogVoltage / 0.003515625;
-    
-    //console.log("There is an object " +
-    //parseFloat(distanceInches).toFixed(3) + " inches away.");
-
-    LastFrontUSSReading = '' + parseFloat(distanceInches).toFixed(3);
-
+    LastFrontUSSReading = '' + parseFloat(x).toFixed(3);
     while (pendingUSSFront_Responses.length > 0) {
         res = pendingUSSFront_Responses.pop();
 
@@ -83,16 +73,7 @@ function UpdateUSStatusFront(x) {
 var pendingUSSRear_Responses = [];
 
 function UpdateUSStatusRear(x) {
-    var distanceInches;
-    analogVoltage = x.value*1.8; // ADC Value converted to voltage
-    //console.log('REAR: x.value = ' + x.value + ', analogVoltage = ' + analogVoltage); 
-    
-    distanceInches = analogVoltage / 0.003515625;
-    
-    //console.log("There is an object " +
-    //parseFloat(distanceInches).toFixed(3) + " inches away.");
-
-    LastRearUSSReading = '' + parseFloat(distanceInches).toFixed(3);
+    LastRearUSSReading = '' + parseFloat(x).toFixed(3);
 
     while (pendingUSSRear_Responses.length > 0) {
         res = pendingUSSRear_Responses.pop();
@@ -116,7 +97,8 @@ app.get('/uss/rear', function (req, res) {
     pendingUSSRear_Responses.push(res);
 
     if (pendingUSSRear_Responses.length == 1) {
-        bone.analogRead('P9_38', UpdateUSStatusRear);
+        //bone.analogRead('P9_38', UpdateUSStatusRear);
+        uss.rearInches(UpdateUSStatusRear);
     }
 })
 
@@ -128,7 +110,8 @@ app.get('/uss/front', function (req, res) {
     pendingUSSFront_Responses.push(res);
 
     if (pendingUSSFront_Responses.length == 1) {
-        bone.analogRead('P9_40', UpdateUSStatusFront);
+        //bone.analogRead('P9_40', UpdateUSStatusFront);
+        uss.frontInches(UpdateUSStatusFront);
     }
 })
 
