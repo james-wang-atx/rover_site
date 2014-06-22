@@ -37,15 +37,15 @@ function clearCommandGeneratedEvent() {
 
 // idle
 function stateFunction_idle_entry( arg ) {
-    console.log('stateFunction_idle_entry... arg=' + arg);
+    //console.log('stateFunction_idle_entry... arg=' + arg);
 }
 function stateFunction_idle_exit( arg ) {
-    console.log('stateFunction_idle_exit... arg=' + arg);
+    //console.log('stateFunction_idle_exit... arg=' + arg);
 }
 
 // connect
 function stateFunction_connect_entry( arg ) {
-    console.log('stateFunction_connect_entry... arg=' + arg);
+    //console.log('stateFunction_connect_entry... arg=' + arg);
     if (typeof arg === "undefined" || arg === 'null') {
         //error! cannot enter this state without giving SensorTag UUID to connect to.
         NextStateMachineEvent = 'error';
@@ -57,17 +57,20 @@ function stateFunction_connect_entry( arg ) {
     DiscoverSensorTagAndConnect( arg );
 }
 function stateFunction_connect_exit( arg ) {
-    console.log('stateFunction_connect_exit... arg=' + arg);
+    //console.log('stateFunction_connect_exit... arg=' + arg);
 }
 
 var last_rssi = null;
 
 // poll_rssi
 function stateFunction_poll_rssi_entry( arg ) {
-    console.log('stateFunction_poll_rssi_entry... arg=' + arg + ', mySensorTag=' + mySensorTag);
+    //console.log('stateFunction_poll_rssi_entry... arg=' + arg + ', mySensorTag=' + mySensorTag);
     mySensorTag._peripheral.updateRssi(function (err, rssi) {
         last_rssi = rssi;
-        //console.log('updateRssi: err = ' + err + ', rssi = ' + last_rssi);
+        ComputeMMA_rssi(rssi);
+        if( GetMMA_rssi() !== MMA_unknown ) {
+            console.log('updateRssi: err = ' + err + ', last_rssi = ' + last_rssi + ', MMA_rssi = ' + GetMMA_rssi() );
+        }
         process.send({ rssi: last_rssi });
     });
 
@@ -76,7 +79,7 @@ function stateFunction_poll_rssi_entry( arg ) {
     NextStateMachineEventArg = null;
 }
 function stateFunction_poll_rssi_exit( arg ) {
-    console.log('stateFunction_poll_rssi_exit... arg=' + arg);
+    //console.log('stateFunction_poll_rssi_exit... arg=' + arg);
 }
 
 // disconnect
@@ -84,7 +87,7 @@ function stateFunction_disconnect_entry( arg ) {
     console.log('stateFunction_disconnect_entry... arg=' + arg);
 }
 function stateFunction_disconnect_exit( arg ) {
-    console.log('stateFunction_disconnect_exit... arg=' + arg);
+    //console.log('stateFunction_disconnect_exit... arg=' + arg);
 }
 
 var temperature = { object: '', ambient: '' };
@@ -92,19 +95,19 @@ var tempSensorEnabled = false;
 
 // get_temperature
 function stateFunction_get_temperature_entry( arg ) {
-    console.log('stateFunction_get_temperature_entry... arg=' + arg);
+    //console.log('stateFunction_get_temperature_entry... arg=' + arg);
 
     if(tempSensorEnabled === false) {
         mySensorTag.discoverServicesAndCharacteristics(function () {
-            console.log('discovered characteristics');
+            //console.log('discovered characteristics');
 
             mySensorTag.enableIrTemperature(function () {
                 
                 tempSensorEnabled = true;
-                console.log('enabled temperature in sensortag!');
+                //console.log('enabled temperature in sensortag!');
 
                 mySensorTag.readIrTemperature(function (objectTemperature, ambientTemperature) {
-                    console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
+                    //console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
                     temperature.object = objectTemperature;
                     temperature.ambient = ambientTemperature;
                     process.send({ temperature: temperature });
@@ -118,7 +121,7 @@ function stateFunction_get_temperature_entry( arg ) {
         });
     } else {
         mySensorTag.readIrTemperature(function (objectTemperature, ambientTemperature) {
-            console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
+            //console.log('objectTemperature ' + objectTemperature + ', ambientTemperature ' + ambientTemperature);
             temperature.object = objectTemperature;
             temperature.ambient = ambientTemperature;
             process.send({ temperature: temperature });
@@ -130,7 +133,7 @@ function stateFunction_get_temperature_entry( arg ) {
     }
 }
 function stateFunction_get_temperature_exit( arg ) {
-    console.log('stateFunction_get_temperature_exit... arg=' + arg);
+    //console.log('stateFunction_get_temperature_exit... arg=' + arg);
 }
 
 // random_step
@@ -155,7 +158,7 @@ function stateFunction_random_step_entry( arg ) {
     uss.frontInches(RndStep_CheckUSSAndGoNextState, arg);
 }
 function stateFunction_random_step_exit( arg ) {
-    console.log('stateFunction_random_step_exit... arg=' + arg);
+    //console.log('stateFunction_random_step_exit... arg=' + arg);
 }
 
 // poll_check_rssi
@@ -165,19 +168,36 @@ function stateFunction_poll_check_rssi_entry( arg ) {
     var previous_rssi = arg;
 
     // TODO: READ RSSI AND COMPARE TO arg
+    mySensorTag._peripheral.updateRssi(function (err, rssi) {
+        last_rssi = rssi;
+        ComputeMMA_rssi(rssi);
 
-    var current_rssi; //=?
-    
-    if( current_rssi <= previous_rssi ) { 
-        NextStateMachineEvent    = 'rssi_is_lower';
-    } else {
-        NextStateMachineEvent    = 'rssi_is_higher';
-    }
+        mmavalue = GetMMA_rssi();
+        if( mmavalue !== MMA_unknown && get_and_decr_pollcheck_rssi_repeat_count() === 0 ) {
+            console.log('RWK-updateRssi: err = ' + err + 
+                        ', last_rssi = ' + last_rssi + 
+                        ', MMA_rssi = ' + GetMMA_rssi() + ', f2i = ', float2int(mmavalue) + 
+                        ', prev = ' + previous_rssi );
 
-    NextStateMachineEventArg = null;
+            if( float2int(mmavalue) >= MMA_CLOSEST ) {
+                console.log('RWK-updateRssi: reached MMA_CLOSEST (' + MMA_CLOSEST + ')');
+                NextStateMachineEvent    = 'rssi_is_lowest';
+                NextStateMachineEventArg = null;
+            } else if( mmavalue > previous_rssi ) { 
+                NextStateMachineEvent    = 'rssi_is_higher';
+                NextStateMachineEventArg = mmavalue;
+            } else {
+                NextStateMachineEvent    = 'rssi_is_lower';
+                NextStateMachineEventArg = arg; // need to pass to UNDO step then back to rand step
+            }
+        } else {
+            NextStateMachineEvent    = 'need_more_rssi';
+            NextStateMachineEventArg = arg; // cycle arg to self
+        }
+    });    
 }
 function stateFunction_poll_check_rssi_exit( arg ) {
-    console.log('stateFunction_poll_check_rssi_exit... arg=' + arg);
+    //console.log('stateFunction_poll_check_rssi_exit... arg=' + arg);
 }
 
 // undo_step
@@ -188,10 +208,10 @@ function stateFunction_undo_step_entry( arg ) {
     motor.reverse(0.4, 500);
 
     NextStateMachineEvent    = 'undo_done';;
-    NextStateMachineEventArg = null;
+    NextStateMachineEventArg = arg;     //pass the rssi to beat onward
 }
 function stateFunction_undo_step_exit( arg ) {
-    console.log('stateFunction_undo_step_exit... arg=' + arg);
+    //console.log('stateFunction_undo_step_exit... arg=' + arg);
 }
 
 // random_walk_done
@@ -204,7 +224,7 @@ function stateFunction_random_walk_done_entry( arg ) {
     NextStateMachineEventArg = null;
 }
 function stateFunction_random_walk_done_exit( arg ) {
-    console.log('stateFunction_random_walk_done_exit... arg=' + arg);
+    //console.log('stateFunction_random_walk_done_exit... arg=' + arg);
 }
 
 ////////////////////////////////////
@@ -285,8 +305,9 @@ states = [
     {
         'name':'poll_check_rssi',
         'events': {
-            'rssi_is_higher': 'undo_step',
-            'rssi_is_lower': 'random_step',
+            'need_more_rssi': 'poll_check_rssi',    // keep cycling arg
+            'rssi_is_lower': 'undo_step',
+            'rssi_is_higher': 'random_step',        // arg is new rssi to beat
             'rssi_is_lowest': 'random_walk_done'
         },
         'state_functions' : {
@@ -333,14 +354,14 @@ function StateMachine( statesArray ) {
 	}
 
 	this.notifyEvent = function( SMEName, clearStateGenerated, arg ) {
-        console.log('notifyEvent: ' + SMEName + ', clearStateGenerated: ' + clearStateGenerated + ', arg: ' + arg);
+        //console.log('notifyEvent: ' + SMEName + ', clearStateGenerated: ' + clearStateGenerated + ', arg: ' + arg);
 
         // each time we are called due to state generated event, we need to be told (i.e., clearStateGenerated=true)
         //   to clear the state generated event variables here, so as to avoid repeated notifying of the
         //   same event over-and-over.  This event variable holder cannot be cleared externally, since
         //   the 'entry' and 'exit' functions for each state may or may not set the variable again.
         if( clearStateGenerated === true ) {
-            console.log('notifyEvent: calling clearNextStateMachineEvent()');
+            //console.log('notifyEvent: calling clearNextStateMachineEvent()');
             clearNextStateMachineEvent();
         }
 
@@ -396,9 +417,9 @@ process.on('message', function (m) {
             //MotorsForward( 0.4, 500 );
         } else if(m.command === 'random_walk') {
             // (Note that the clearStateGenerated boolean should = false, for external command event)
-            if( last_rssi !== null ) {
+            if( GetMMA_rssi() !== MMA_unknown ) {
                 CommandGeneratedEvent = 'rnd_walk';
-                CommandGeneratedEventArg = last_rssi;
+                CommandGeneratedEventArg = GetMMA_rssi();
             } else {
                 console.log('cannot start random walk, due to not having initial rssi');
             }
@@ -437,6 +458,12 @@ startTimer();
 // Helper functions                                              //
 ///////////////////////////////////////////////////////////////////
 
+function float2int (value) {
+    // In javascript, using bitwise operations on floating point values will convert
+    //  them to an integer stripping off digits after decimal point
+    return value | 0;
+}
+
 function DiscoverSensorTagAndConnect(tagUUID) {
     console.log('DiscoverSensorTagAndConnect(' + tagUUID + ')');
     SensorTag.discover(function (sensorTag) {
@@ -467,11 +494,47 @@ function RndStep_CheckUSSAndGoNextState(distanceFloat, arg) {
 
         NextStateMachineEvent    = 'check_rssi_change';
         NextStateMachineEventArg = arg; //forward the previous rssi
+        
+        // force state to pause/linger to get a more accurate averaged reading
+        reset_pollcheck_repeat_count();
     } else {
         console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + 'inches, ' + arg + ' blocked');
         // something blocking in front
         //   go back and choose another direction
         NextStateMachineEvent    = 'obstacle';
         NextStateMachineEventArg = arg; //pass along rssi to self
+    }
+}
+
+var MMA_CLOSEST = -59;
+
+var MMA_rssi    = 0;
+var MMA_n       = 9;
+var MMA_count   = 0;
+var MMA_unknown = -1000.0;
+
+function ComputeMMA_rssi(rssi) {
+    MMA_rssi = ( (MMA_n - 1) * MMA_rssi + rssi ) / MMA_n;
+    MMA_count++;
+}
+
+function GetMMA_rssi() {
+    if(MMA_count > MMA_n) {
+        return MMA_rssi;
+    }
+    return MMA_unknown;
+}
+
+var pollcheck_rssi_repeat_count = 0;
+
+function reset_pollcheck_repeat_count() {
+    pollcheck_rssi_repeat_count = MMA_n + 1;
+}
+
+function get_and_decr_pollcheck_rssi_repeat_count() {
+    if( pollcheck_rssi_repeat_count > 0 ) {
+        return pollcheck_rssi_repeat_count--;
+    } else {
+        return 0;
     }
 }
