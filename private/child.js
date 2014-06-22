@@ -3,6 +3,7 @@ var bone      = require('bonescript');
 var noble     = require('noble');
 var SensorTag = require('sensortag');
 var motor     = require('./motor');
+var uss       = require('./uss');
 
 var mySensorTag = null;
 var lastRSSI    = null;
@@ -137,9 +138,21 @@ function stateFunction_random_step_entry( arg ) {
     console.log('stateFunction_random_step_entry... arg=' + arg + '(current rssi)');
 
     // TODO: RANDOM TURN AND THEN FWD
+    var rnd1 = Math.random(); //todo
+    var rnd2 = Math.random(); //todo
 
-    NextStateMachineEvent    = 'check_rssi_change';
-    NextStateMachineEventArg = arg; //forward the previous rssi
+    var timeMs = rnd2 * 1000;
+
+    if( rnd1 > 0.5 ) {
+        console.log('stateFunction_random_step_entry: left: ' + timeMs);
+        motor.turnleft(0.4, timeMs);
+    } else {
+        console.log('stateFunction_random_step_entry: right: ' + timeMs);
+        motor.turnright(0.4, timeMs);
+    }
+
+    // check ultrasonic, if ok...
+    uss.frontInches(RndStep_CheckUSSAndGoNextState, arg);
 }
 function stateFunction_random_step_exit( arg ) {
     console.log('stateFunction_random_step_exit... arg=' + arg);
@@ -172,6 +185,7 @@ function stateFunction_undo_step_entry( arg ) {
     console.log('stateFunction_undo_step_entry... arg=' + arg);
 
     // TODO: GO BACKWARDS PRESCRIBED AMOUNT OF TIME
+    motor.reverse(0.4, 500);
 
     NextStateMachineEvent    = 'undo_done';;
     NextStateMachineEventArg = null;
@@ -259,6 +273,7 @@ states = [
     {
         'name':'random_step',
         'events': {
+            'obstacle': 'random_step',             // re-enter same state with rssi in arg
             'error': 'poll_rssi',
             'check_rssi_change': 'poll_check_rssi' // arg = rssi before step
         },
@@ -368,6 +383,7 @@ process.on('message', function (m) {
     console.log('CHILD got message:', m);
     if (typeof m.hello !== 'undefined' && typeof m.myTag !== 'undefined') {
         if( sm.getStatus() === 'idle' ) {
+            // (Note that the clearStateGenerated boolean should = false, for external command event)
             sm.notifyEvent('start', false, m.myTag);
         }
     } else if( m.command !== 'undefined') {
@@ -379,7 +395,13 @@ process.on('message', function (m) {
 
             //MotorsForward( 0.4, 500 );
         } else if(m.command === 'random_walk') {
-            //enable SM
+            // (Note that the clearStateGenerated boolean should = false, for external command event)
+            if( last_rssi !== null ) {
+                CommandGeneratedEvent = 'rnd_walk';
+                CommandGeneratedEventArg = last_rssi;
+            } else {
+                console.log('cannot start random walk, due to not having initial rssi');
+            }
         }
     }
 });
@@ -437,3 +459,19 @@ function DiscoverSensorTagAndConnect(tagUUID) {
     );
 };
 
+function RndStep_CheckUSSAndGoNextState(distanceFloat, arg) {
+    if( distanceFloat > 9.0 ) {
+        console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + ' inches, ' + arg + ' clear');
+        // no obstacle in front, move forward
+        motor.forward(0.4, 500);
+
+        NextStateMachineEvent    = 'check_rssi_change';
+        NextStateMachineEventArg = arg; //forward the previous rssi
+    } else {
+        console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + 'inches, ' + arg + ' blocked');
+        // something blocking in front
+        //   go back and choose another direction
+        NextStateMachineEvent    = 'obstacle';
+        NextStateMachineEventArg = arg; //pass along rssi to self
+    }
+}

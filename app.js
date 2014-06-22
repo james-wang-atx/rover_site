@@ -54,8 +54,9 @@ var LastRearUSSReading  = '';
 
 var pendingUSSFront_Responses = [];
 
-function UpdateUSStatusFront(x) {
-    LastFrontUSSReading = '' + parseFloat(x).toFixed(3);
+function UpdateUSStatusFront(distanceFloat, arg) {
+    //console.log('UpdateUSStatusFront: arg=' + arg);
+    LastFrontUSSReading = '' + parseFloat(distanceFloat).toFixed(3);
     while (pendingUSSFront_Responses.length > 0) {
         res = pendingUSSFront_Responses.pop();
 
@@ -72,9 +73,9 @@ function UpdateUSStatusFront(x) {
 
 var pendingUSSRear_Responses = [];
 
-function UpdateUSStatusRear(x) {
-    LastRearUSSReading = '' + parseFloat(x).toFixed(3);
-
+function UpdateUSStatusRear(distanceFloat, arg) {
+    //console.log('UpdateUSStatusRear: arg=' + arg);
+    LastRearUSSReading = '' + parseFloat(distanceFloat).toFixed(3);
     while (pendingUSSRear_Responses.length > 0) {
         res = pendingUSSRear_Responses.pop();
 
@@ -98,7 +99,7 @@ app.get('/uss/rear', function (req, res) {
 
     if (pendingUSSRear_Responses.length == 1) {
         //bone.analogRead('P9_38', UpdateUSStatusRear);
-        uss.rearInches(UpdateUSStatusRear);
+        uss.rearInches(UpdateUSStatusRear, null);
     }
 })
 
@@ -111,7 +112,7 @@ app.get('/uss/front', function (req, res) {
 
     if (pendingUSSFront_Responses.length == 1) {
         //bone.analogRead('P9_40', UpdateUSStatusFront);
-        uss.frontInches(UpdateUSStatusFront);
+        uss.frontInches(UpdateUSStatusFront, null);
     }
 })
 
@@ -176,6 +177,7 @@ app.post('/control*', function (req, res) {
         motor.turnright(req.body.RDUTY, req.body.RTIME);
     } else if (req.url == "/control?RWK=ON") {
         n.send({ command: 'random_walk' });
+        //TODO: need to disable basic motor commands during RWALK?
     }
 
     res.writeHead(204);

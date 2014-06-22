@@ -13,13 +13,14 @@ function ussFrontConvertToInches(x) {
 
     //LastFrontUSSReading = '' + parseFloat(distanceInches).toFixed(3);
     while (pendingUSSFront_callbacks.length > 0) {
-        usercb = pendingUSSFront_callbacks.pop();
-        usercb(distanceInches);
+        cbinfo  = pendingUSSFront_callbacks.pop();
+        cbinfo.callback(distanceInches, cbinfo.arg);
     }
 }
 
-var frontInches = function (usercallback) {
-    pendingUSSFront_callbacks.push(usercallback);
+var frontInches = function (usercallback, userarg) {
+    var cbinfo = { callback: usercallback, arg: userarg };
+    pendingUSSFront_callbacks.push(cbinfo);
     if (pendingUSSFront_callbacks.length == 1) {
         bone.analogRead('P9_40', ussFrontConvertToInches);
     }
@@ -37,13 +38,14 @@ function ussRearConvertToInches(x) {
     distanceInches = analogVoltage / 0.003515625;
 
     while (pendingUSSRear_callbacks.length > 0) {
-        usercb = pendingUSSRear_callbacks.pop();
-        usercb(distanceInches);
+        cbinfo  = pendingUSSRear_callbacks.pop();
+        cbinfo.callback(distanceInches, cbinfo.arg);
     }
 }
 
-var rearInches = function (usercallback) {
-    pendingUSSRear_callbacks.push(usercallback);
+var rearInches = function (usercallback, userarg) {
+    var cbinfo = { callback: usercallback, arg: userarg };
+    pendingUSSRear_callbacks.push(cbinfo);
     if (pendingUSSRear_callbacks.length == 1) {
         bone.analogRead('P9_38', ussRearConvertToInches);
     }

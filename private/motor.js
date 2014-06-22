@@ -31,7 +31,7 @@ function schedule_P8_13_Off(data) {
         timeout = DEFAULT_TIMEOUT_MS;
     }
 
-    console.log('req timeout = ' + timeout);
+    //console.log('motor drive time = ' + timeout);
     setTimeout(P8_13_Off, timeout);
 }
 
@@ -41,7 +41,7 @@ function schedule_P8_19_Off(data) {
         timeout = DEFAULT_TIMEOUT_MS;
     }
 
-    console.log('req timeout = ' + timeout);
+    //console.log('motor drive time = ' + timeout);
     setTimeout(P8_19_Off, timeout);
 }
 
@@ -51,7 +51,7 @@ function schedule_P9_14_Off(data) {
         timeout = DEFAULT_TIMEOUT_MS;
     }
 
-    console.log('req timeout = ' + timeout);
+    //console.log('motor drive time = ' + timeout);
     setTimeout(P9_14_Off, timeout);
 }
 
@@ -63,7 +63,7 @@ function schedule_P9_16_Off(data) {
         timeout = DEFAULT_TIMEOUT_MS;
     }
 
-    console.log('req timeout = ' + timeout);
+    //console.log('motor drive time = ' + timeout);
     setTimeout(P9_16_Off, timeout);
 }
 
