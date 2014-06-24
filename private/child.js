@@ -144,22 +144,26 @@ function stateFunction_random_step_entry( arg ) {
     var rnd1 = Math.random(); //todo
     var rnd2 = Math.random(); //todo
 
-    var timeMs = rnd2 * 1000;
+    var timeMs = 0;
 
     if( rnd1 > 0.5 ) {
+        timeMs = rnd2 * 2100;
         console.log('stateFunction_random_step_entry: left: ' + timeMs);
-        motor.turnleft(0.4, timeMs);
+        motor.turnleft(0.5, timeMs);
     } else {
+        timeMs = rnd2 * 2500;
         console.log('stateFunction_random_step_entry: right: ' + timeMs);
-        motor.turnright(0.4, timeMs);
+        motor.turnright(0.5, timeMs);
     }
 
-    // check ultrasonic, if ok...
-    uss.frontInches(RndStep_CheckUSSAndGoNextState, arg);
+    // one-shot timer callback
+    setTimeout(RndStep_TurnWaitTimer, timeMs, arg);
 }
 function stateFunction_random_step_exit( arg ) {
     //console.log('stateFunction_random_step_exit... arg=' + arg);
 }
+
+var testcount = 3;
 
 // poll_check_rssi
 function stateFunction_poll_check_rssi_entry( arg ) {
@@ -179,9 +183,9 @@ function stateFunction_poll_check_rssi_entry( arg ) {
                         ', MMA_rssi = ' + GetMMA_rssi() + ', f2i = ', float2int(mmavalue) + 
                         ', prev = ' + previous_rssi );
 
-            if( float2int(mmavalue) >= MMA_CLOSEST ) {
-                console.log('RWK-updateRssi: reached MMA_CLOSEST (' + MMA_CLOSEST + ')');
-                NextStateMachineEvent    = 'rssi_is_lowest';
+            if( float2int(mmavalue) >= MMA_RSSI_CLOSEST || testcount-- <= 0) {
+                console.log('RWK-updateRssi: reached MMA_RSSI_CLOSEST (' + MMA_RSSI_CLOSEST + ')');
+                NextStateMachineEvent    = 'rssi_is_highest';
                 NextStateMachineEventArg = null;
             } else if( mmavalue > previous_rssi ) { 
                 NextStateMachineEvent    = 'rssi_is_higher';
@@ -308,7 +312,7 @@ states = [
             'need_more_rssi': 'poll_check_rssi',    // keep cycling arg
             'rssi_is_lower': 'undo_step',
             'rssi_is_higher': 'random_step',        // arg is new rssi to beat
-            'rssi_is_lowest': 'random_walk_done'
+            'rssi_is_highest': 'random_walk_done'
         },
         'state_functions' : {
             'entry': stateFunction_poll_check_rssi_entry,
@@ -486,6 +490,12 @@ function DiscoverSensorTagAndConnect(tagUUID) {
     );
 };
 
+function RndStep_TurnWaitTimer(arg) {
+    console.log('RndStep_TurnWaitTimer: calling uss.frontInches() - arg = ' + arg);
+    // check ultrasonic, and set event to go to next state
+    uss.frontInches(RndStep_CheckUSSAndGoNextState, arg);
+}
+
 function RndStep_CheckUSSAndGoNextState(distanceFloat, arg) {
     if( distanceFloat > 9.0 ) {
         console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + ' inches, ' + arg + ' clear');
@@ -506,7 +516,8 @@ function RndStep_CheckUSSAndGoNextState(distanceFloat, arg) {
     }
 }
 
-var MMA_CLOSEST = -59;
+
+var MMA_RSSI_CLOSEST = -59;
 
 var MMA_rssi    = 0;
 var MMA_n       = 9;
