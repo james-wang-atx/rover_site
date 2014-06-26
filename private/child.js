@@ -35,7 +35,7 @@ function clearCommandGeneratedEvent() {
 // State functions                                           //
 ///////////////////////////////////////////////////////////////
 
-// idle
+// [idle]
 function stateFunction_idle_entry( smArgObj ) {
     console.log('stateFunction_idle_entry... smArgObj=' + smArgObj);
 }
@@ -43,7 +43,7 @@ function stateFunction_idle_exit( smArgObj ) {
     //console.log('stateFunction_idle_exit... smArgObj=' + smArgObj);
 }
 
-// connect
+// [connect]
 function stateFunction_connect_entry( smArgObj ) {
     //console.log('stateFunction_connect_entry... smArgObj=' + smArgObj);
     if (    typeof smArgObj  === 'undefined' || smArgObj === null
@@ -63,7 +63,7 @@ function stateFunction_connect_exit( smArgObj ) {
 
 var last_rssi = null;
 
-// poll_rssi
+// [poll_rssi]
 function stateFunction_poll_rssi_entry( smArgObj ) {
     try {
         //console.log('stateFunction_poll_rssi_entry... smArgObj=' + smArgObj + ', mySensorTag=' + mySensorTag);
@@ -91,7 +91,7 @@ function stateFunction_poll_rssi_exit( smArgObj ) {
     //console.log('stateFunction_poll_rssi_exit... smArgObj=' + smArgObj);
 }
 
-// disconnect
+// [disconnect]
 function stateFunction_disconnect_entry( smArgObj ) {
     console.log('stateFunction_disconnect_entry... smArgObj=' + smArgObj);
     DisconnectSensorTag(smArgObj);
@@ -103,7 +103,7 @@ function stateFunction_disconnect_exit( smArgObj ) {
 var temperature = { object: '', ambient: '' };
 var tempSensorEnabled = false;
 
-// get_temperature
+// [get_temperature]
 function stateFunction_get_temperature_entry( smArgObj ) {
     //console.log('stateFunction_get_temperature_entry... smArgObj=' + smArgObj);
 
@@ -156,13 +156,13 @@ var STD_FWD_TIMEMS = 500;
 var STD_BCK_DUTY   = 0.4;
 var STD_BCK_TIMEMS = 500;
 
-// random_step
+// [random_step]
 function stateFunction_random_step_entry( smArgObj ) {
     console.log('stateFunction_random_step_entry... smArgObj=' + smArgObj + '(current rssi)');
 
     // TODO: RANDOM TURN AND THEN FWD
-    var rnd1 = Math.random(); //todo
-    var rnd2 = Math.random(); //todo
+    var rnd1 = Math.random();
+    var rnd2 = Math.random();
 
     var timeMs = 0;
 
@@ -189,9 +189,10 @@ function stateFunction_random_step_exit( smArgObj ) {
     //console.log('stateFunction_random_step_exit... smArgObj=' + smArgObj);
 }
 
+// TEMP DEBUG:
 var testcount = 3;
 
-// poll_check_rssi
+// [poll_check_rssi]
 function stateFunction_poll_check_rssi_entry( smArgObj ) {
     console.log('stateFunction_poll_check_rssi_entry... smArgObj=' + smArgObj + '(rssi before last step)');
 
@@ -234,7 +235,7 @@ function stateFunction_poll_check_rssi_exit( smArgObj ) {
     reset_turn_90_substate_count();
 }
 
-// turn_90_step
+// [turn_90_step]
 function stateFunction_turn_90_entry( smArgObj ) {
     console.log('stateFunction_turn_90_step_entry... smArgObj=' + smArgObj);
 
@@ -285,7 +286,7 @@ function stateFunction_turn_90_entry( smArgObj ) {
         // reset_pollcheck_repeat_count() is also called before transition to poll check state
     } else {
         // this will cause state to go to 'undo_step' (go backwards and then 180 degree turn to go in other direction,
-        //   then enter 'random'step' and no change to rssi to beat)
+        //   then enter 'random_step' with no change to rssi to beat)
         NextStateMachineEvent    = 'triple_obstacle';
         NextStateMachineEventArg = smArgObj; //pass along rssi
     }
@@ -294,7 +295,7 @@ function stateFunction_turn_90_exit( smArgObj ) {
     //console.log('stateFunction_turn_90_step_exit... smArgObj=' + smArgObj);
 }
 
-// poll_new_rssi_and_turn_90
+// [poll_new_rssi_and_turn_90]
 function stateFunction_poll_new_rssi_and_turn_90_entry( smArgObj ) {
     console.log('stateFunction_poll_new_rssi_and_turn_90_entry... smArgObj=' + smArgObj);
 
@@ -331,7 +332,7 @@ function stateFunction_poll_new_rssi_and_turn_90_exit( smArgObj ) {
     reset_turn_90_substate_count();
 }
 
-// undo_step
+// [undo_step]
 function stateFunction_undo_step_entry( smArgObj ) {
     console.log('stateFunction_undo_step_entry... smArgObj=' + smArgObj);
 
@@ -345,7 +346,7 @@ function stateFunction_undo_step_exit( smArgObj ) {
     //console.log('stateFunction_undo_step_exit... smArgObj=' + smArgObj);
 }
 
-// turn_180
+// [turn_180]
 function stateFunction_turn_180_entry( smArgObj ) {
     console.log('stateFunction_turn_180_entry... smArgObj=' + smArgObj);
 
@@ -360,7 +361,7 @@ function stateFunction_turn_180_exit( smArgObj ) {
     //console.log('stateFunction_turn_180_exit... smArgObj=' + smArgObj);
 }
 
-// random_walk_done
+// [random_walk_done]
 function stateFunction_random_walk_done_entry( smArgObj ) {
     console.log('stateFunction_random_walk_done_entry... smArgObj=' + smArgObj);
 
@@ -469,8 +470,8 @@ states = [
         //   only turn 90 degrees left or right.
         //   In addition to special conditions are handled:
         //      1. "double obstacle" = direction at 90 degress left and right has an obstacle according to ultrasonic sensor
-        //                             In this case, we try to go forward, which should have a lower rssi than before, establish
-        //                             a new rssi to beat, and re-enter turn_90_step to establish a new hemispherical scope for the
+        //                             In this case, we try to go forward, which should have a lower rssi than before, establish this as
+        //                             new rssi to beat, and re-enter turn_90_step to establish a new hemispherical scope for the
         //                             path.  After turn_90_step, we'll return to random_step if there is no blockage
         //      2. "triple_obstacle" = 90 degrees left and right and straight ahead are blocked
         //                             In this case, we "undo_step" (go backwards) then turn_180, and restart at random_step
