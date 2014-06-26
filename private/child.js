@@ -36,17 +36,18 @@ function clearCommandGeneratedEvent() {
 ///////////////////////////////////////////////////////////////
 
 // idle
-function stateFunction_idle_entry( arg ) {
-    //console.log('stateFunction_idle_entry... arg=' + arg);
+function stateFunction_idle_entry( smArgObj ) {
+    //console.log('stateFunction_idle_entry... smArgObj=' + smArgObj);
 }
-function stateFunction_idle_exit( arg ) {
-    //console.log('stateFunction_idle_exit... arg=' + arg);
+function stateFunction_idle_exit( smArgObj ) {
+    //console.log('stateFunction_idle_exit... smArgObj=' + smArgObj);
 }
 
 // connect
-function stateFunction_connect_entry( arg ) {
-    //console.log('stateFunction_connect_entry... arg=' + arg);
-    if (typeof arg === "undefined" || arg === 'null') {
+function stateFunction_connect_entry( smArgObj ) {
+    //console.log('stateFunction_connect_entry... smArgObj=' + smArgObj);
+    if (    typeof smArgObj  === 'undefined' || smArgObj === null
+         || typeof smArgObj.tagUUID === 'undefined' || smArgObj.tagUUID === null) {
         //error! cannot enter this state without giving SensorTag UUID to connect to.
         NextStateMachineEvent = 'error';
         NextStateMachineEventArg = null;
@@ -54,17 +55,17 @@ function stateFunction_connect_entry( arg ) {
     }
 
     // success of connection will cause transition to poll_rssi
-    DiscoverSensorTagAndConnect( arg );
+    DiscoverSensorTagAndConnect( smArgObj );
 }
-function stateFunction_connect_exit( arg ) {
-    //console.log('stateFunction_connect_exit... arg=' + arg);
+function stateFunction_connect_exit( smArgObj ) {
+    //console.log('stateFunction_connect_exit... smArgObj=' + smArgObj);
 }
 
 var last_rssi = null;
 
 // poll_rssi
-function stateFunction_poll_rssi_entry( arg ) {
-    //console.log('stateFunction_poll_rssi_entry... arg=' + arg + ', mySensorTag=' + mySensorTag);
+function stateFunction_poll_rssi_entry( smArgObj ) {
+    //console.log('stateFunction_poll_rssi_entry... smArgObj=' + smArgObj + ', mySensorTag=' + mySensorTag);
     mySensorTag._peripheral.updateRssi(function (err, rssi) {
         last_rssi = rssi;
         ComputeMMA_rssi(rssi);
@@ -76,26 +77,26 @@ function stateFunction_poll_rssi_entry( arg ) {
 
     // default behavior --> poll again
     NextStateMachineEvent    = 'poll';
-    NextStateMachineEventArg = null;
+    NextStateMachineEventArg = smArgObj;
 }
-function stateFunction_poll_rssi_exit( arg ) {
-    //console.log('stateFunction_poll_rssi_exit... arg=' + arg);
+function stateFunction_poll_rssi_exit( smArgObj ) {
+    //console.log('stateFunction_poll_rssi_exit... smArgObj=' + smArgObj);
 }
 
 // disconnect
-function stateFunction_disconnect_entry( arg ) {
-    console.log('stateFunction_disconnect_entry... arg=' + arg);
+function stateFunction_disconnect_entry( smArgObj ) {
+    console.log('stateFunction_disconnect_entry... smArgObj=' + smArgObj);
 }
-function stateFunction_disconnect_exit( arg ) {
-    //console.log('stateFunction_disconnect_exit... arg=' + arg);
+function stateFunction_disconnect_exit( smArgObj ) {
+    //console.log('stateFunction_disconnect_exit... smArgObj=' + smArgObj);
 }
 
 var temperature = { object: '', ambient: '' };
 var tempSensorEnabled = false;
 
 // get_temperature
-function stateFunction_get_temperature_entry( arg ) {
-    //console.log('stateFunction_get_temperature_entry... arg=' + arg);
+function stateFunction_get_temperature_entry( smArgObj ) {
+    //console.log('stateFunction_get_temperature_entry... smArgObj=' + smArgObj);
 
     if(tempSensorEnabled === false) {
         mySensorTag.discoverServicesAndCharacteristics(function () {
@@ -132,13 +133,23 @@ function stateFunction_get_temperature_entry( arg ) {
         });
     }
 }
-function stateFunction_get_temperature_exit( arg ) {
-    //console.log('stateFunction_get_temperature_exit... arg=' + arg);
+function stateFunction_get_temperature_exit( smArgObj ) {
+    //console.log('stateFunction_get_temperature_exit... smArgObj=' + smArgObj);
 }
 
+var LEFT_TURN_DUTY         = 0.5;
+var LEFT_TURN_360_TIME_MS  = 2150;
+var RIGHT_TURN_DUTY        = 0.5;
+var RIGHT_TURN_360_TIME_MS = 2500;
+
+var STD_FWD_DUTY   = 0.4;
+var STD_FWD_TIMEMS = 500;
+var STD_BCK_DUTY   = 0.4;
+var STD_BCK_TIMEMS = 500;
+
 // random_step
-function stateFunction_random_step_entry( arg ) {
-    console.log('stateFunction_random_step_entry... arg=' + arg + '(current rssi)');
+function stateFunction_random_step_entry( smArgObj ) {
+    console.log('stateFunction_random_step_entry... smArgObj=' + smArgObj + '(current rssi)');
 
     // TODO: RANDOM TURN AND THEN FWD
     var rnd1 = Math.random(); //todo
@@ -147,31 +158,32 @@ function stateFunction_random_step_entry( arg ) {
     var timeMs = 0;
 
     if( rnd1 > 0.5 ) {
-        timeMs = rnd2 * 2100;
+        //restrict to 90 degrees
+        timeMs = rnd2 * LEFT_TURN_360_TIME_MS/4;
         console.log('stateFunction_random_step_entry: left: ' + timeMs);
-        motor.turnleft(0.5, timeMs);
+        motor.turnleft(LEFT_TURN_DUTY, timeMs);
     } else {
-        timeMs = rnd2 * 2500;
+        //restrict to 90 degrees
+        timeMs = rnd2 * RIGHT_TURN_360_TIME_MS/4;
         console.log('stateFunction_random_step_entry: right: ' + timeMs);
-        motor.turnright(0.5, timeMs);
+        motor.turnright(RIGHT_TURN_DUTY, timeMs);
     }
 
     // one-shot timer callback
-    setTimeout(RndStep_TurnWaitTimer, timeMs, arg);
+    setTimeout(Delay_TurnWaitTimer_and_Check_USS, timeMs, smArgObj);
 }
-function stateFunction_random_step_exit( arg ) {
-    //console.log('stateFunction_random_step_exit... arg=' + arg);
+function stateFunction_random_step_exit( smArgObj ) {
+    //console.log('stateFunction_random_step_exit... smArgObj=' + smArgObj);
 }
 
 var testcount = 3;
 
 // poll_check_rssi
-function stateFunction_poll_check_rssi_entry( arg ) {
-    console.log('stateFunction_poll_check_rssi_entry... arg=' + arg + '(rssi before last step)');
+function stateFunction_poll_check_rssi_entry( smArgObj ) {
+    console.log('stateFunction_poll_check_rssi_entry... smArgObj=' + smArgObj + '(rssi before last step)');
 
-    var previous_rssi = arg;
+    var previous_rssi = smArgObj.rssiToBeat;
 
-    // TODO: READ RSSI AND COMPARE TO arg
     mySensorTag._peripheral.updateRssi(function (err, rssi) {
         last_rssi = rssi;
         ComputeMMA_rssi(rssi);
@@ -189,46 +201,113 @@ function stateFunction_poll_check_rssi_entry( arg ) {
                 NextStateMachineEventArg = null;
             } else if( mmavalue > previous_rssi ) { 
                 NextStateMachineEvent    = 'rssi_is_higher';
-                NextStateMachineEventArg = mmavalue;
-            } else {
+                smArgObj.rssiToBeat      = mmavalue;
+                NextStateMachineEventArg = smArgObj;
+            } else if( mmavalue < previous_rssi ) {
                 NextStateMachineEvent    = 'rssi_is_lower';
-                NextStateMachineEventArg = arg; // need to pass to UNDO step then back to rand step
+                NextStateMachineEventArg = smArgObj; // need to pass to UNDO step then back to rand step
+            } else {
+                NextStateMachineEvent    = 'rssi_is_same'; // we're "tangential" to the SensorTag
+                NextStateMachineEventArg = smArgObj;
             }
         } else {
             NextStateMachineEvent    = 'need_more_rssi';
-            NextStateMachineEventArg = arg; // cycle arg to self
+            NextStateMachineEventArg = smArgObj; // cycle smArgObj to self
         }
     });    
 }
-function stateFunction_poll_check_rssi_exit( arg ) {
-    //console.log('stateFunction_poll_check_rssi_exit... arg=' + arg);
+function stateFunction_poll_check_rssi_exit( smArgObj ) {
+    //console.log('stateFunction_poll_check_rssi_exit... smArgObj=' + smArgObj);
+    reset_turn_90_substate_count();
+}
+
+// turn_90_step
+function stateFunction_turn_90_entry( smArgObj ) {
+    console.log('stateFunction_turn_90_step_entry... smArgObj=' + smArgObj + '(current rssi)');
+
+    var timeMs = 0;
+
+    var substatecount = get_and_incr_turn_90_repeat_count();
+    if( substatecount == 1 )
+    {
+        //restrict to 90 degrees
+        timeMs = LEFT_TURN_360_TIME_MS/4;
+        console.log('stateFunction_turn_90_entry: left:[90] ' + timeMs);
+        motor.turnleft(LEFT_TURN_DUTY, timeMs);
+
+        // one-shot timer callback, using SAME callback as 'random_step' state (i.e., this state must handle same two outcome events)
+        setTimeout(Delay_TurnWaitTimer_and_Check_USS, timeMs, smArgObj);
+    } else if( substatecount == 2 ) {
+        // if we get here, the 1st substate was blocked due to obstacle detected by ultrasonic sensor,
+        //   we need to turn 180 to effectively make the "opposite choice" from substate 1
+
+        timeMs = LEFT_TURN_360_TIME_MS/2;
+        console.log('stateFunction_turn_90_entry: left:[180] ' + timeMs);
+        motor.turnleft(LEFT_TURN_DUTY, timeMs);
+
+        // one-shot timer callback, using SAME callback as 'random_step' state (i.e., this state must handle same two outcome events)
+        setTimeout(Delay_TurnWaitTimer_and_Check_USS, timeMs, smArgObj);
+    } else if( substatecount == 2 ) {
+        // if we get here, the first 2 substates were block (so 90 degrees left and right from original position
+        //   were blocked).  At this point 1 more left 90 degrees restores our original orientation (this is the
+        //   reason we don't randomly turn left or right in substate 1)
+        
+        timeMs = LEFT_TURN_360_TIME_MS/4;
+        console.log('stateFunction_turn_90_entry: left:[90] ' + timeMs);
+        motor.turnleft(LEFT_TURN_DUTY, timeMs);
+
+        // one-shot timer callback, using SAME callback as 'random_step' state (i.e., this state must handle same two outcome events)
+        setTimeout(Delay_TurnWaitTimer_and_Check_USS, timeMs, smArgObj);
+    } else {
+        // this will cause state to go to 'undo_step' (go backwards and then 180 degree turn to go in other direction, with 'random'step')
+        NextStateMachineEvent    = 'triple_obstacle';
+        NextStateMachineEventArg = smArgObj; //pass along rssi
+    }
+}
+function stateFunction_turn_90_exit( smArgObj ) {
+    //console.log('stateFunction_turn_90_step_exit... smArgObj=' + smArgObj);
 }
 
 // undo_step
-function stateFunction_undo_step_entry( arg ) {
-    console.log('stateFunction_undo_step_entry... arg=' + arg);
+function stateFunction_undo_step_entry( smArgObj ) {
+    console.log('stateFunction_undo_step_entry... smArgObj=' + smArgObj);
 
     // TODO: GO BACKWARDS PRESCRIBED AMOUNT OF TIME
-    motor.reverse(0.4, 500);
+    motor.reverse(STD_BCK_DUTY, STD_BCK_TIMEMS);
 
-    NextStateMachineEvent    = 'undo_done';;
-    NextStateMachineEventArg = arg;     //pass the rssi to beat onward
+    // one-shot timer callback
+    setTimeout(Delay_StateTransition_Timer, TimeFor180Ms, 'undo_done', smArgObj );
 }
-function stateFunction_undo_step_exit( arg ) {
-    //console.log('stateFunction_undo_step_exit... arg=' + arg);
+function stateFunction_undo_step_exit( smArgObj ) {
+    //console.log('stateFunction_undo_step_exit... smArgObj=' + smArgObj);
+}
+
+// turn_180
+function stateFunction_turn_180_entry( smArgObj ) {
+    console.log('stateFunction_turn_180_entry... smArgObj=' + smArgObj);
+
+    var TimeFor180Ms = LEFT_TURN_360_TIME_MS/2;
+
+    motor.turnleft(LEFT_TURN_DUTY, TimeFor180Ms);
+
+    // one-shot timer callback
+    setTimeout(Delay_StateTransition_Timer, TimeFor180Ms, '180_done', smArgObj );
+}
+function stateFunction_turn_180_exit( smArgObj ) {
+    //console.log('stateFunction_turn_180_exit... smArgObj=' + smArgObj);
 }
 
 // random_walk_done
-function stateFunction_random_walk_done_entry( arg ) {
-    console.log('stateFunction_random_walk_done_entry... arg=' + arg);
+function stateFunction_random_walk_done_entry( smArgObj ) {
+    console.log('stateFunction_random_walk_done_entry... smArgObj=' + smArgObj);
 
     // TODO: final docking procedure
 
     NextStateMachineEvent    = 'dock_and_charge'; //spin here for now
     NextStateMachineEventArg = null;
 }
-function stateFunction_random_walk_done_exit( arg ) {
-    //console.log('stateFunction_random_walk_done_exit... arg=' + arg);
+function stateFunction_random_walk_done_exit( smArgObj ) {
+    //console.log('stateFunction_random_walk_done_exit... smArgObj=' + smArgObj);
 }
 
 ////////////////////////////////////
@@ -264,7 +343,7 @@ states = [
             'disconnect': 'disconnect',
             'poll': 'poll_rssi',
             'get_temp': 'get_temperature',
-            'rnd_walk': 'random_step' // arg = current rssi
+            'rnd_walk': 'random_step' // smArgObj = current rssi
         },
         'state_functions' : {
             'entry': stateFunction_poll_rssi_entry,
@@ -295,11 +374,13 @@ states = [
         }
     },
     {
+        // This is no longer a full 360 degree random turn and step state.
+        // The turn is restricted to between 0-90 degrees left or right.
         'name':'random_step',
         'events': {
-            'obstacle': 'random_step',             // re-enter same state with rssi in arg
+            'obstacle': 'random_step',             // re-enter same state with rssi in smArgObj
             'error': 'poll_rssi',
-            'check_rssi_change': 'poll_check_rssi' // arg = rssi before step
+            'check_rssi_change': 'poll_check_rssi' // smArgObj contains rssi before step
         },
         'state_functions' : {
             'entry': stateFunction_random_step_entry,
@@ -309,9 +390,10 @@ states = [
     {
         'name':'poll_check_rssi',
         'events': {
-            'need_more_rssi': 'poll_check_rssi',    // keep cycling arg
+            'need_more_rssi': 'poll_check_rssi',    // keep cycling smArgObj
+            'rssi_is_same': 'turn_90_step',
             'rssi_is_lower': 'undo_step',
-            'rssi_is_higher': 'random_step',        // arg is new rssi to beat
+            'rssi_is_higher': 'random_step',        // smArgObj contains new rssi to beat
             'rssi_is_highest': 'random_walk_done'
         },
         'state_functions' : {
@@ -320,13 +402,38 @@ states = [
         }
     },
     {
+        // This state is essentially same as 'random_step' state except it can
+        //   only turn 90 degrees left or right.
+        'name':'turn_90_step',
+        'events': {
+            'obstacle': 'turn_90_step',             // return to same state, on 3rd-try, we giveup by straightening out to original fwd position
+            'triple_obstacle': 'undo_step',
+            'error': 'poll_rssi',
+            'check_rssi_change': 'poll_check_rssi' // smArgObj contains rssi before step
+        },
+        'state_functions' : {
+            'entry': stateFunction_turn_90_entry,
+            'exit': stateFunction_turn_90_exit
+        }
+    },
+    {
         'name':'undo_step',
         'events': {
-            'undo_done': 'random_step'
+            'undo_done': 'turn_180'
         },
         'state_functions' : {
             'entry': stateFunction_undo_step_entry,
             'exit': stateFunction_undo_step_exit
+        }
+    },
+    {
+        'name':'turn_180',
+        'events': {
+            '180_done': 'random_step'
+        },
+        'state_functions' : {
+            'entry': stateFunction_turn_180_entry,
+            'exit': stateFunction_turn_180_exit
         }
     },
     {
@@ -357,8 +464,8 @@ function StateMachine( statesArray ) {
 		}
 	}
 
-	this.notifyEvent = function( SMEName, clearStateGenerated, arg ) {
-        //console.log('notifyEvent: ' + SMEName + ', clearStateGenerated: ' + clearStateGenerated + ', arg: ' + arg);
+	this.notifyEvent = function( SMEName, clearStateGenerated, smArgObj ) {
+        //console.log('notifyEvent: ' + SMEName + ', clearStateGenerated: ' + clearStateGenerated + ', smArgObj: ' + smArgObj);
 
         // each time we are called due to state generated event, we need to be told (i.e., clearStateGenerated=true)
         //   to clear the state generated event variables here, so as to avoid repeated notifying of the
@@ -374,7 +481,7 @@ function StateMachine( statesArray ) {
 
             if( this.currentState.state_functions['exit'] !== 'undefined' ) {
                 // call the current state's exit function
-                this.currentState.state_functions['exit']( arg );
+                this.currentState.state_functions['exit']( smArgObj );
             }
 
             // move to next state
@@ -382,7 +489,7 @@ function StateMachine( statesArray ) {
 
             if( this.currentState.state_functions['entry'] !== 'undefined' ) {
                 // call the new state's entry function
-                this.currentState.state_functions['entry']( arg );
+                this.currentState.state_functions['entry']( smArgObj );
             }
 		} else {
             console.log('notifyEvent: Current: ' + this.currentState.name + ', IGNORING event: ' + SMEName );
@@ -409,7 +516,8 @@ process.on('message', function (m) {
     if (typeof m.hello !== 'undefined' && typeof m.myTag !== 'undefined') {
         if( sm.getStatus() === 'idle' ) {
             // (Note that the clearStateGenerated boolean should = false, for external command event)
-            sm.notifyEvent('start', false, m.myTag);
+            var smArgObj = { tagUUID: m.myTag };
+            sm.notifyEvent('start', false, smArgObj);
         }
     } else if( m.command !== 'undefined') {
         if(m.command === 'get_temp') {
@@ -422,8 +530,9 @@ process.on('message', function (m) {
         } else if(m.command === 'random_walk') {
             // (Note that the clearStateGenerated boolean should = false, for external command event)
             if( GetMMA_rssi() !== MMA_unknown ) {
+                var smArgObj = { rssiToBeat: GetMMA_rssi() };
                 CommandGeneratedEvent = 'rnd_walk';
-                CommandGeneratedEventArg = GetMMA_rssi();
+                CommandGeneratedEventArg = smArgObj;
             } else {
                 console.log('cannot start random walk, due to not having initial rssi');
             }
@@ -447,7 +556,7 @@ function smStrobe() {
     }
 
     if( NextStateMachineEvent !== null ) {
-        // setting 2nd arg to true to clear the event (prevent doing it again)
+        // setting 2nd smArgObj to true to clear the event (prevent doing it again)
         sm.notifyEvent(NextStateMachineEvent, true, NextStateMachineEventArg);
     }
 }
@@ -468,12 +577,12 @@ function float2int (value) {
     return value | 0;
 }
 
-function DiscoverSensorTagAndConnect(tagUUID) {
-    console.log('DiscoverSensorTagAndConnect(' + tagUUID + ')');
+function DiscoverSensorTagAndConnect(smArgObj) {
+    console.log('DiscoverSensorTagAndConnect(' + smArgObj.tagUUID + ')');
     SensorTag.discover(function (sensorTag) {
         console.log('SensorTag.discover: sensorTag = ' + sensorTag);
 
-        if (sensorTag.uuid.toLowerCase() === tagUUID) {
+        if (sensorTag.uuid.toLowerCase() === smArgObj.tagUUID) {
             console.log('found my sensortag!');
 
             mySensorTag = sensorTag;
@@ -486,36 +595,46 @@ function DiscoverSensorTagAndConnect(tagUUID) {
                 NextStateMachineEventArg = null;
             });
         }
-    }, tagUUID
+    }, smArgObj.tagUUID
     );
 };
 
-function RndStep_TurnWaitTimer(arg) {
-    console.log('RndStep_TurnWaitTimer: calling uss.frontInches() - arg = ' + arg);
+function Delay_TurnWaitTimer_and_Check_USS(smArgObj) {
+    console.log('Delay_TurnWaitTimer_and_Check_USS: calling uss.frontInches() - smArgObj = ' + smArgObj);
     // check ultrasonic, and set event to go to next state
-    uss.frontInches(RndStep_CheckUSSAndGoNextState, arg);
+    uss.frontInches(RndStep_CheckUSSAndGoNextState, smArgObj);
 }
 
-function RndStep_CheckUSSAndGoNextState(distanceFloat, arg) {
+function RndStep_CheckUSSAndGoNextState(distanceFloat, smArgObj) {
     if( distanceFloat > 9.0 ) {
-        console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + ' inches, ' + arg + ' clear');
-        // no obstacle in front, move forward
-        motor.forward(0.4, 500);
+        console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + ' inches, ' + smArgObj + ' clear');
+        
+        // _CLEAR_ (no obstacle, go forward)
+        motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS);
+
+        // NOTE: there is no need to delay this state transition, since the next state
+        //       has effectively a built in rssi repeated read/delay, which will consume
+        //       at least 500 ms.
 
         NextStateMachineEvent    = 'check_rssi_change';
-        NextStateMachineEventArg = arg; //forward the previous rssi
+        NextStateMachineEventArg = smArgObj; //forward the previous rssi
         
         // force state to pause/linger to get a more accurate averaged reading
         reset_pollcheck_repeat_count();
     } else {
-        console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + 'inches, ' + arg + ' blocked');
-        // something blocking in front
+        console.log('RndStep_CheckUSSAndGoNextState: ' + distanceFloat + 'inches, ' + smArgObj + ' blocked');
+        
+        // _BLOCKED_
         //   go back and choose another direction
         NextStateMachineEvent    = 'obstacle';
-        NextStateMachineEventArg = arg; //pass along rssi to self
+        NextStateMachineEventArg = smArgObj; //pass along rssi to self
     }
 }
 
+function Delay_StateTransition_Timer(stateEvent, smArgObj) {
+    NextStateMachineEvent    = stateEvent;
+    NextStateMachineEventArg = smArgObj;
+}
 
 var MMA_RSSI_CLOSEST = -59;
 
@@ -548,4 +667,16 @@ function get_and_decr_pollcheck_rssi_repeat_count() {
     } else {
         return 0;
     }
+}
+
+//////////////////////////////////////////////////
+
+var turn_90_substate_count = 0;
+
+function reset_turn_90_substate_count() {
+    pollcheck_rssi_repeat_count = 0;
+}
+
+function get_and_incr_turn_90_repeat_count() {
+    return turn_90_substate_count++;
 }
