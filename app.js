@@ -284,7 +284,7 @@ var n = cp.fork(__dirname + '/private/child.js');
 n.on('message', function (m) {
     //console.log('PARENT got message:', m);
     if (typeof m.rssi !== 'undefined') {
-        last_rssi = '' + m.rssi;
+        last_rssi = '' + m.rssi + ', MMA ' + m.rssiMMA;
     } else if (typeof m.temperature !== 'undefined') {
         temperature = m.temperature;
         if (outstanding_response !== null) {

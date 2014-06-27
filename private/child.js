@@ -38,6 +38,10 @@ function clearCommandGeneratedEvent() {
 // [idle]
 function stateFunction_idle_entry( smArgObj ) {
     console.log('stateFunction_idle_entry... smArgObj=' + smArgObj);
+
+    if( smArgObj !== null ) {
+        setTimeout(DelayedConnectTimerCB, 10000, smArgObj);
+    }
 }
 function stateFunction_idle_exit( smArgObj ) {
     //console.log('stateFunction_idle_exit... smArgObj=' + smArgObj);
@@ -73,7 +77,9 @@ function stateFunction_poll_rssi_entry( smArgObj ) {
             if( GetMMA_rssi() !== MMA_unknown ) {
                 console.log('updateRssi: err = ' + err + ', last_rssi = ' + last_rssi + ', MMA_rssi = ' + GetMMA_rssi() );
             }
-            process.send({ rssi: last_rssi });
+
+            var rssiMMA = float2int(GetMMA_rssi());
+            process.send({ rssi: last_rssi, rssiMMA: rssiMMA });
         });
 
         // default behavior --> poll again
@@ -83,8 +89,9 @@ function stateFunction_poll_rssi_entry( smArgObj ) {
     catch(err) {
         console.log('stateFunction_poll_rssi_entry:exception: ' + err.message );
 
+        var smArgObj2 = { tagUUID: mySensorTag.uuid.toLowerCase() };
         NextStateMachineEvent    = 'disconnect';
-        NextStateMachineEventArg = smArgObj;
+        NextStateMachineEventArg = smArgObj2;
     }
 }
 function stateFunction_poll_rssi_exit( smArgObj ) {
@@ -407,7 +414,8 @@ states = [
             'disconnect': 'disconnect',
             'poll': 'poll_rssi',
             'get_temp': 'get_temperature',
-            'rnd_walk': 'random_step' // smArgObj = current rssi
+            'rnd_walk': 'random_step', // smArgObj = current rssi
+            'disconnect_success': 'idle'
         },
         'state_functions' : {
             'entry': stateFunction_poll_rssi_entry,
@@ -694,7 +702,7 @@ function DisconnectSensorTag(smArgObj) {
 
                 // setup event for next state
                 NextStateMachineEvent = 'disconnect_success';
-                NextStateMachineEventArg = null;
+                NextStateMachineEventArg = smArgObj;
             });
         }
         catch(err) {
@@ -704,10 +712,16 @@ function DisconnectSensorTag(smArgObj) {
         }
     }
     
-    if (    typeof smArgObj  !== 'undefined' && smArgObj !== null
-         && typeof smArgObj.tagUUID !== 'undefined' && smArgObj.tagUUID !== null) {
-         smArgObj.tagUUID = null;
-    }
+    //Don't do this, to allow reconnect
+    //if (    typeof smArgObj  !== 'undefined' && smArgObj !== null
+    //     && typeof smArgObj.tagUUID !== 'undefined' && smArgObj.tagUUID !== null) {
+    //     smArgObj.tagUUID = null;
+    //}
+}
+
+function DelayedConnectTimerCB(smArgObj) {
+    NextStateMachineEvent    = 'start';
+    NextStateMachineEventArg = smArgObj; //pass along rssi to self
 }
 
 function TurnWaitTimerCB_Check_USS_Fwd_if_clear(smArgObj) {
