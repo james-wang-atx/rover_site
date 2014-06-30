@@ -279,7 +279,7 @@ server.listen(app.get('port'), function () {
 
 var MY_SENSOR_TAG_UUID = '9059af0b834a';
 
-var n = cp.fork(__dirname + '/private/child.js');
+var n = cp.fork(__dirname + '/private/child2.js');
 
 n.on('message', function (m) {
     //console.log('PARENT got message:', m);
