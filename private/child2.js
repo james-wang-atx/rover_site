@@ -168,7 +168,7 @@ var testcount = 1;
 
 // [random_turn_0_to_90]
 function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
-    console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
+    console.log('stateFunction_random_turn_0_to_90_entry... smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
 
     if( testcount-- <= 0 ) {
         NextStateMachineEvent    = 'error';
@@ -183,11 +183,11 @@ function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
 
     if( rnd1 > 0.5 ) {
         timeMs = rnd2 * LEFT_TURN_360_TIME_MS/4;
-        console.log('stateFunction_random_step_entry: left: ' + timeMs);
+        console.log('stateFunction_random_turn_0_to_90_entry: left: ' + timeMs);
         motor.turnleft(LEFT_TURN_DUTY, timeMs);
     } else {
         timeMs = rnd2 * RIGHT_TURN_360_TIME_MS/4;
-        console.log('stateFunction_random_step_entry: right: ' + timeMs);
+        console.log('stateFunction_random_turn_0_to_90_entry: right: ' + timeMs);
         motor.turnright(RIGHT_TURN_DUTY, timeMs);
     }
 
@@ -195,8 +195,11 @@ function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
     setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
 }
 function stateFunction_random_turn_0_to_90_exit( smArgObj ) {
-    //console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
-    EmptyRssiArray( smArgObj );
+    console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
+    // check for null only necessary in case of error event which causes us to return to poll_rssi without a smArgObj
+    if( smArgObj !== null ) {
+        EmptyRssiArray( smArgObj );
+    }
 }
 
 // [forward]
@@ -254,6 +257,9 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
                 console.log('RWK-pollcheck:NOT_LOWER: mmavalue ' + mmavalue + ', array length = ' + smArgObj.rssiArray.length);
                 NextStateMachineEvent    = 'more_steps';
                 NextStateMachineEventArg = smArgObj;
+                
+                // start new rssi array sequence (if we keep a long array, we're bound to find 2+ with lower rssi)
+                EmptyRssiArray( smArgObj );
             }
         } else {
             console.log('RWK-pollcheck rssi:need_more_rssi: err = ' + err + 
@@ -305,7 +311,14 @@ function stateFunction_forward_n_entry( smArgObj ) {
     if ( typeof smArgObj.n === 'undefined' || smArgObj.n === null || smArgObj.n === 0 ) {
         smArgObj.n = CountWeakRSSIStepsToUndo( smArgObj );
         smArgObj.r = smArgObj.rssiArray.length - smArgObj.n;
-        console.log('stateFunction_forward_n_entry:INIT COUNTS: n = ' + smArgObj.n + ', r = ' + smArgObj.r);
+        console.log('stateFunction_forward_n_entry:INIT COUNTS[then abort]: n = ' + smArgObj.n + ', r = ' + smArgObj.r);
+
+
+
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+
     }
 
     if( smArgObj.n <= 0 ) {
@@ -321,7 +334,15 @@ function stateFunction_forward_n_entry( smArgObj ) {
     } else {
         smArgObj.n--;
         motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS);
-        setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'more_steps', smArgObj);
+        if( smArgObj.n <= 0 ) {
+            if( smArgObj.r <= 0 ) {
+                setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'all_steps_undone', smArgObj);
+            } else {
+                setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'kept_a_step', smArgObj);
+            }
+        } else {
+            setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'more_steps', smArgObj);
+        }
         console.log('stateFunction_forward_n_entry:stepping: decr n = ' + smArgObj.n);
     }
 }
@@ -333,11 +354,12 @@ function stateFunction_forward_n_exit( smArgObj ) {
 function stateFunction_turn_90_entry( smArgObj ) {
     console.log('stateFunction_turn_90_entry... smArgObj=' + JSON.stringify(smArgObj));
 
-    if( testcount-- <= 0 ) {
-        NextStateMachineEvent    = 'error';
-        NextStateMachineEventArg = null;
-        return;
-    }
+    //if( testcount-- <= 0 ) {
+    //    NextStateMachineEvent    = 'error';
+    //    NextStateMachineEventArg = null;
+    //    console.log('stateFunction_turn_90_entry: testcount ABORT');
+    //    return;
+    //}
 
     var timeMs = 0;
 
@@ -451,7 +473,7 @@ function stateFunction_escape_turn_0_to_90_entry( smArgObj ) {
     setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
 }
 function stateFunction_escape_turn_0_to_90_exit( smArgObj ) {
-    //console.log('stateFunction_escape_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
+    console.log('stateFunction_escape_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [escape_forward]
@@ -630,7 +652,7 @@ states = [
         'name':'random_turn_0_to_90',
         'events': {
             'error': 'poll_rssi',
-            'obstacle': 'random_0_to_90',           // re-enter same state (theoretically could get stuck here forever)
+            'obstacle': 'random_turn_0_to_90',           // re-enter same state (theoretically could get stuck here forever)
             'no_obstacle': 'forward'
         },
         'state_functions' : {
@@ -979,12 +1001,16 @@ function TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events(smArgObj) {
 }
 
 function CheckUSSCB_SetSMEvent(distanceFloat, smArgObj) {
+    if( distanceFloat === NaN ) {
+        console.log('CheckUSSCB_SetSMEvent:NaN: ' + distanceFloat + ', ' + JSON.stringify(smArgObj));
+    }
+
     if( distanceFloat > 9.0 ) {
-        console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + smArgObj + ' _____ CLEAR _____');
+        console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + ' _____ CLEAR _____');
         NextStateMachineEvent    = 'no_obstacle';
         NextStateMachineEventArg = smArgObj; //forward the previous rssi        
     } else {
-        console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + 'inches, ' + smArgObj + '#_#_#_#_# BLOCKED #_#_#_#_#');
+        console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + '#_#_#_#_# BLOCKED #_#_#_#_#');
         NextStateMachineEvent    = 'obstacle';
         NextStateMachineEventArg = smArgObj; //pass along rssi to self
     }
@@ -1010,8 +1036,9 @@ function Delay_StateTransition_Timer(stateEvent, smArgObj) {
 
 // this method is supposedly as fast as (or faster than) any of the alternatives
 function EmptyRssiArray( smArgObj ) {
+    console.log('___EmptyRssiArray - smArgObj = ' + JSON.stringify( smArgObj ) );
     while(smArgObj.rssiArray.length > 0) {
-        smArgObj.rssiArray.length.pop();
+        smArgObj.rssiArray.pop();
     }
 }
 
@@ -1065,7 +1092,7 @@ function CountWeakRSSIStepsToUndo( smArgObj ) {
 var MMA_RSSI_CLOSEST = -59;
 
 var MMA_rssi    = 0;
-var MMA_n       = 3;
+var MMA_n       = 6;
 var MMA_count   = 0;
 var MMA_unknown = -1000.0;
 
@@ -1086,16 +1113,16 @@ function GetMMA_rssi() {
 var pollcheck_rssi_repeat_count;
 
 function reset_pollcheck_repeat_count() {
-    pollcheck_rssi_repeat_count = 20;
+    pollcheck_rssi_repeat_count = 30;
     console.log('reset_pollcheck_repeat_count: set to ' + pollcheck_rssi_repeat_count);
 }
 
 function get_and_decr_pollcheck_rssi_repeat_count() {
-    console.log('get_and_decr_pollcheck_rssi_repeat_count: count = ' + pollcheck_rssi_repeat_count);
+    //console.log('get_and_decr_pollcheck_rssi_repeat_count: count = ' + pollcheck_rssi_repeat_count);
     if( pollcheck_rssi_repeat_count > 0 ) {
         var retval = pollcheck_rssi_repeat_count;
         pollcheck_rssi_repeat_count = pollcheck_rssi_repeat_count - 1;
-        console.log('get_and_decr_pollcheck_rssi_repeat_count: returning ' + retval + ', decremented count = ' + pollcheck_rssi_repeat_count);
+        //console.log('get_and_decr_pollcheck_rssi_repeat_count: returning ' + retval + ', decremented count = ' + pollcheck_rssi_repeat_count);
         return retval;
     } else {
         console.log('get_and_decr_pollcheck_rssi_repeat_count: returning 0!');
