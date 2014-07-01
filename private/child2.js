@@ -37,19 +37,19 @@ function clearCommandGeneratedEvent() {
 
 // [idle]
 function stateFunction_idle_entry( smArgObj ) {
-    console.log('stateFunction_idle_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_idle_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     if( smArgObj !== null ) {
         setTimeout(Delay_StateTransition_Timer, 10000, 'start', smArgObj);
     }
 }
 function stateFunction_idle_exit( smArgObj ) {
-    //console.log('stateFunction_idle_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_idle_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [connect]
 function stateFunction_connect_entry( smArgObj ) {
-    //console.log('stateFunction_connect_entry... smArgObj=' + smArgObj);
+    //console.log('stateFunction_connect_entry... smArgObj=' + JSON.stringify(smArgObj));
     if (    typeof smArgObj  === 'undefined' || smArgObj === null
          || typeof smArgObj.tagUUID === 'undefined' || smArgObj.tagUUID === null) {
         //error! cannot enter this state without giving SensorTag UUID to connect to.
@@ -62,7 +62,7 @@ function stateFunction_connect_entry( smArgObj ) {
     DiscoverSensorTagAndConnect( smArgObj );
 }
 function stateFunction_connect_exit( smArgObj ) {
-    //console.log('stateFunction_connect_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_connect_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 var last_rssi = null;
@@ -70,7 +70,7 @@ var last_rssi = null;
 // [poll_rssi]
 function stateFunction_poll_rssi_entry( smArgObj ) {
     try {
-        //console.log('stateFunction_poll_rssi_entry... smArgObj=' + smArgObj + ', mySensorTag=' + mySensorTag);
+        //console.log('stateFunction_poll_rssi_entry... smArgObj=' + JSON.stringify(smArgObj) + ', mySensorTag=' + mySensorTag);
         mySensorTag._peripheral.updateRssi(function (err, rssi) {
             last_rssi = rssi;
             ComputeMMA_rssi(rssi);
@@ -95,16 +95,16 @@ function stateFunction_poll_rssi_entry( smArgObj ) {
     }
 }
 function stateFunction_poll_rssi_exit( smArgObj ) {
-    //console.log('stateFunction_poll_rssi_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_poll_rssi_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [disconnect]
 function stateFunction_disconnect_entry( smArgObj ) {
-    console.log('stateFunction_disconnect_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_disconnect_entry... smArgObj=' + JSON.stringify(smArgObj));
     DisconnectSensorTag(smArgObj);
 }
 function stateFunction_disconnect_exit( smArgObj ) {
-    //console.log('stateFunction_disconnect_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_disconnect_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 var temperature = { object: '', ambient: '' };
@@ -112,7 +112,7 @@ var tempSensorEnabled = false;
 
 // [get_temperature]
 function stateFunction_get_temperature_entry( smArgObj ) {
-    //console.log('stateFunction_get_temperature_entry... smArgObj=' + smArgObj);
+    //console.log('stateFunction_get_temperature_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     if(tempSensorEnabled === false) {
         mySensorTag.discoverServicesAndCharacteristics(function () {
@@ -150,7 +150,7 @@ function stateFunction_get_temperature_entry( smArgObj ) {
     }
 }
 function stateFunction_get_temperature_exit( smArgObj ) {
-    //console.log('stateFunction_get_temperature_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_get_temperature_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 var LEFT_TURN_DUTY         = 0.5;
@@ -168,7 +168,7 @@ var testcount = 1;
 
 // [random_turn_0_to_90]
 function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
-    console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + smArgObj + '(current rssi)');
+    console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
 
     if( testcount-- <= 0 ) {
         NextStateMachineEvent    = 'error';
@@ -195,7 +195,7 @@ function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
     setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
 }
 function stateFunction_random_turn_0_to_90_exit( smArgObj ) {
-    //console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
     EmptyRssiArray( smArgObj );
 }
 
@@ -206,13 +206,13 @@ function stateFunction_forward_entry( smArgObj ) {
     setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'done', smArgObj);
 }
 function stateFunction_forward_exit( smArgObj ) {
-    //console.log('stateFunction_forward_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_forward_exit... smArgObj=' + JSON.stringify(smArgObj));
     reset_pollcheck_repeat_count();
 }
 
 // [poll_check_and_track_rssi]
 function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
-    console.log('stateFunction_poll_check_and_track_rssi_exit... smArgObj=' + smArgObj);
+    console.log('stateFunction_poll_check_and_track_rssi_exit... smArgObj=' + JSON.stringify(smArgObj));
 
     if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
         NextStateMachineEvent = 'error';
@@ -266,7 +266,7 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
     });    
 }
 function stateFunction_poll_check_and_track_rssi_exit( smArgObj ) {
-    //console.log('stateFunction_poll_check_and_track_rssi_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_poll_check_and_track_rssi_exit... smArgObj=' + JSON.stringify(smArgObj));
     reset_turn_90_substate_count();
 }
 
@@ -275,12 +275,12 @@ function stateFunction_check_uss_entry( smArgObj ) {
     uss.frontInches(CheckUSSCB_SetSMEvent, smArgObj);
 }
 function stateFunction_check_uss_exit( smArgObj ) {
-    //console.log('stateFunction_check_uss_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_check_uss_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [turn_180]
 function stateFunction_turn_180_entry( smArgObj ) {
-    console.log('stateFunction_turn_180_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_turn_180_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     var TimeFor180Ms = LEFT_TURN_360_TIME_MS/2;
 
@@ -290,12 +290,12 @@ function stateFunction_turn_180_entry( smArgObj ) {
     setTimeout(Delay_StateTransition_Timer, TimeFor180Ms, 'done', smArgObj );
 }
 function stateFunction_turn_180_exit( smArgObj ) {
-    //console.log('stateFunction_turn_180_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_turn_180_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [forward_n]
 function stateFunction_forward_n_entry( smArgObj ) {
-    console.log('stateFunction_forward_n_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_forward_n_entry... smArgObj=' + JSON.stringify(smArgObj));
     if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
         NextStateMachineEvent = 'error';
         NextStateMachineEventArg = null;
@@ -326,12 +326,12 @@ function stateFunction_forward_n_entry( smArgObj ) {
     }
 }
 function stateFunction_forward_n_exit( smArgObj ) {
-    //console.log('stateFunction_forward_n_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_forward_n_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [turn_90]
 function stateFunction_turn_90_entry( smArgObj ) {
-    console.log('stateFunction_turn_90_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_turn_90_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     if( testcount-- <= 0 ) {
         NextStateMachineEvent    = 'error';
@@ -380,12 +380,12 @@ function stateFunction_turn_90_entry( smArgObj ) {
     }
 }
 function stateFunction_turn_90_exit( smArgObj ) {
-    //console.log('stateFunction_turn_90_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_turn_90_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [start_escape]
 function stateFunction_start_escape_entry( smArgObj ) {
-    console.log('stateFunction_start_escape_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_start_escape_entry... smArgObj=' + JSON.stringify(smArgObj));
     
     if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
         NextStateMachineEvent = 'error';
@@ -404,12 +404,12 @@ function stateFunction_start_escape_entry( smArgObj ) {
     console.log('stateFunction_start_escape_entry: steps = ' + smArgObj.escape_steps);
 }
 function stateFunction_start_escape_exit( smArgObj ) {
-    //console.log('stateFunction_start_escape_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_start_escape_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [escape_turn_0_to_90]
 function stateFunction_escape_turn_0_to_90_entry( smArgObj ) {
-    console.log('stateFunction_escape_turn_0_to_90_entry... smArgObj=' + smArgObj + '(current rssi)');
+    console.log('stateFunction_escape_turn_0_to_90_entry... smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
 
     if( testcount-- <= 0 ) {
         NextStateMachineEvent    = 'error';
@@ -451,7 +451,7 @@ function stateFunction_escape_turn_0_to_90_entry( smArgObj ) {
     setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
 }
 function stateFunction_escape_turn_0_to_90_exit( smArgObj ) {
-    //console.log('stateFunction_escape_turn_0_to_90_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_escape_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [escape_forward]
@@ -474,7 +474,7 @@ function stateFunction_escape_forward_entry( smArgObj ) {
     }
 }
 function stateFunction_escape_forward_exit( smArgObj ) {
-    //console.log('stateFunction_escape_forward_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_escape_forward_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [escape_check_uss]
@@ -482,12 +482,12 @@ function stateFunction_escape_check_uss_entry( smArgObj ) {
     uss.frontInches(CheckUSSCB_SetSMEvent_SPECIAL, smArgObj);
 }
 function stateFunction_escape_check_uss_exit( smArgObj ) {
-    //console.log('stateFunction_escape_check_uss_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_escape_check_uss_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 // [escape_turn_180]
 function stateFunction_escape_turn_180_entry( smArgObj ) {
-    console.log('stateFunction_escape_turn_180_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_escape_turn_180_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     var TimeFor180Ms = LEFT_TURN_360_TIME_MS/2;
 
@@ -497,13 +497,13 @@ function stateFunction_escape_turn_180_entry( smArgObj ) {
     setTimeout(Delay_StateTransition_Timer, TimeFor180Ms, 'done', smArgObj );
 }
 function stateFunction_escape_turn_180_exit( smArgObj ) {
-    //console.log('stateFunction_turn_180_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_turn_180_exit... smArgObj=' + JSON.stringify(smArgObj));
     reset_pollcheck_repeat_count();
 }
 
 // [poll_rssi_restart_walk]
 function stateFunction_poll_rssi_restart_walk_entry( smArgObj ) {
-    console.log('stateFunction_poll_rssi_restart_walk_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_poll_rssi_restart_walk_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
         NextStateMachineEvent = 'error';
@@ -539,14 +539,14 @@ function stateFunction_poll_rssi_restart_walk_entry( smArgObj ) {
     });    
 }
 function stateFunction_poll_rssi_restart_walk_exit( smArgObj ) {
-    //console.log('stateFunction_poll_rssi_restart_walk_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_poll_rssi_restart_walk_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 var debug_dock_counter = 0;
 
 // [random_walk_done]
 function stateFunction_random_walk_done_entry( smArgObj ) {
-    console.log('stateFunction_random_walk_done_entry... smArgObj=' + smArgObj);
+    console.log('stateFunction_random_walk_done_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     // TODO: final docking procedure
     if( debug_dock_counter++ < 10 ) {
@@ -559,7 +559,7 @@ function stateFunction_random_walk_done_entry( smArgObj ) {
     }
 }
 function stateFunction_random_walk_done_exit( smArgObj ) {
-    //console.log('stateFunction_random_walk_done_exit... smArgObj=' + smArgObj);
+    //console.log('stateFunction_random_walk_done_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 ////////////////////////////////////
@@ -664,7 +664,7 @@ states = [
         }
     },
     {
-        'name':"check_uss',
+        'name':'check_uss',
         'events': {
             'error': 'poll_rssi',
             'obstacle': 'turn_90',
@@ -747,7 +747,7 @@ states = [
         }
     },
     {
-        'name':"escape_check_uss',
+        'name':'escape_check_uss',
         'events': {
             'error': 'poll_rssi',
             'obstacle': 'escape_turn_0_to_90',  // smArgObj contains running count number of forward steps remaining, used as steps to take after rnd turn
@@ -874,7 +874,7 @@ process.on('message', function (m) {
             // (Note that the clearStateGenerated boolean should = false, for external command event)
             if( GetMMA_rssi() !== MMA_unknown ) {
                 var smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
-                                 rssiToBeat: GetMMA_rssi()
+                                 rssiToBeat: GetMMA_rssi(),
                                  rssiArray: [] };
                 CommandGeneratedEvent = 'rnd_walk';
                 CommandGeneratedEventArg = smArgObj;
