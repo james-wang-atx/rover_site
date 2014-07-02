@@ -166,11 +166,11 @@ var STD_BCK_DUTY   = 0.4;
 var STD_BCK_TIMEMS = 500;
 
 // TEMP DEBUG:
-var testcount = 1;
+var testcount = 2;
 
 // [random_turn_0_to_90]
 function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
-    console.log('stateFunction_random_turn_0_to_90_entry... smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
+    console.log('stateFunction_random_turn_0_to_90_entry: testcount = ' + testcount + ', smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
 
     if( testcount-- <= 0 ) {
         NextStateMachineEvent    = 'error';
@@ -380,7 +380,7 @@ function stateFunction_turn_90_entry( smArgObj ) {
         motor.turnleft(LEFT_TURN_DUTY, timeMs);
 
         // one-shot timer callback, using SAME callback as 'random_step' state (i.e., this state must handle same two outcome events)
-        setTimeout(TurnWaitTimerCB_Check_USS_Fwd_if_clear, timeMs+1000, smArgObj);
+        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
         // reset_pollcheck_repeat_count() is also called before transition to poll check state
     } else if( substatecount == 2 ) {
         // left 180, which is equivalent to right 90 degrees from starting position
@@ -392,7 +392,7 @@ function stateFunction_turn_90_entry( smArgObj ) {
         // just use 'obstacle' and 'no_obstacle' events... //smArgObj.pollCheckEvent = 'check_rssi_change';
 
         // one-shot timer callback, using SAME callback as 'random_step' state (i.e., this state must handle same two outcome events)
-        setTimeout(TurnWaitTimerCB_Check_USS_Fwd_if_clear, timeMs+1000, smArgObj);
+        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
         // reset_pollcheck_repeat_count() is also called before transition to poll check state
     } else if( substatecount == 3 ) {
         timeMs = RIGHT_TURN_360_TIME_MS/4;
@@ -1174,5 +1174,5 @@ function reset_turn_90_substate_count() {
 }
 
 function get_and_incr_turn_90_repeat_count() {
-    return turn_90_substate_count++;
+    return ++turn_90_substate_count;
 }
