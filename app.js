@@ -169,12 +169,20 @@ app.post('/control*', function (req, res) {
 
     if (req.url == "/control?dir=FWD") {
         motor.forward(req.body.FDUTY, req.body.FTIME);
+        // DEBUG/TEST:
+        n.send({ command: 'reset_rssiHL' });
     } else if (req.url == "/control?dir=BCK") {
         motor.reverse(req.body.BDUTY, req.body.BTIME);
+        // DEBUG/TEST:
+        n.send({ command: 'reset_rssiHL' });
     } else if (req.url == "/control?dir=LFT") {
         motor.turnleft(req.body.LDUTY, req.body.LTIME);
+        // DEBUG/TEST:
+        n.send({ command: 'reset_rssiHL' });
     } else if (req.url == "/control?dir=RGT") {
         motor.turnright(req.body.RDUTY, req.body.RTIME);
+        // DEBUG/TEST:
+        n.send({ command: 'reset_rssiHL' });
     } else if (req.url == "/control?RWK=ON") {
         n.send({ command: 'random_walk' });
         //TODO: need to disable basic motor commands during RWALK?
@@ -284,7 +292,7 @@ var n = cp.fork(__dirname + '/private/child2.js');
 n.on('message', function (m) {
     //console.log('PARENT got message:', m);
     if (typeof m.rssi !== 'undefined') {
-        last_rssi = '' + m.rssi + ', MMA ' + m.rssiMMA;
+        last_rssi = '' + m.rssi + ', HI ' + m.rssiHI; //', MMA ' + m.rssiMMA;
     } else if (typeof m.temperature !== 'undefined') {
         temperature = m.temperature;
         if (outstanding_response !== null) {
@@ -294,7 +302,7 @@ n.on('message', function (m) {
             });
 
             outstanding_response.writeHead(200);
-            outstanding_response.write('' + parseFloat(temperature.object).toFixed(3) + ', ' + parseFloat(temperature.ambient).toFixed(3));            
+            outstanding_response.write('' + parseFloat(temperature.object).toFixed(3) + ', ' + parseFloat(temperature.ambient).toFixed(3));
             outstanding_response.end();
         }
     }

@@ -74,12 +74,14 @@ function stateFunction_poll_rssi_entry( smArgObj ) {
         mySensorTag._peripheral.updateRssi(function (err, rssi) {
             last_rssi = rssi;
             ComputeMMA_rssi(rssi);
+            var HILO = Get_rssiHL();
+
             if( GetMMA_rssi() !== MMA_unknown ) {
-                console.log('updateRssi: err = ' + err + ', last_rssi = ' + last_rssi + ', MMA_rssi = ' + GetMMA_rssi() );
+                console.log('updateRssi: err = ' + err + ', last_rssi = ' + last_rssi + ', HI = ' + HILO.HI + ', LO = ' + HILO.LO );
             }
 
             var rssiMMA = float2int(GetMMA_rssi());
-            process.send({ rssi: last_rssi, rssiMMA: rssiMMA });
+            process.send({ rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI });
         });
 
         // default behavior --> poll again
@@ -223,38 +225,41 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
         return;
     }
 
-    var previous_rssi = smArgObj.rssiToBeat;
-
     mySensorTag._peripheral.updateRssi(function (err, rssi) {
         last_rssi = rssi;
         ComputeMMA_rssi(rssi);
 
         mmavalue = GetMMA_rssi();
+        var HILO = Get_rssiHL();
 
         if( mmavalue !== MMA_unknown && get_and_decr_pollcheck_rssi_repeat_count() === 0 ) {
             console.log('RWK-pollcheck rssi: err = ' + err + 
                         ', last_rssi = ' + last_rssi + 
-                        ', MMA_rssi = ' + GetMMA_rssi() + ', f2i = ', float2int(mmavalue) + 
-                        ', prev = ' + previous_rssi );
+                        ', HI = ' + HILO.HI + 
+                        ', rssiToBeat = ' + smArgObj.rssiToBeat );
+
+            console.log('RWK-pollcheck rssi: HI = ' + HILO.HI + ', LO = ' + HILO.LO );
+
+            var rssiInt_to_check = HILO.HI;
 
             // add rssi data point to array
-            smArgObj.rssiArray.push(mmavalue);
-
-            if( float2int(mmavalue) >= MMA_RSSI_CLOSEST ) {
+            //smArgObj.rssiArray.push(mmavalue);
+            smArgObj.rssiArray.push(rssiInt_to_check);
+            
+            if( rssiInt_to_check >= MMA_RSSI_CLOSEST ) {
                 console.log('RWK-updateRssi: reached MMA_RSSI_CLOSEST (' + MMA_RSSI_CLOSEST + ')');
                 NextStateMachineEvent    = 'rssi_is_highest';
                 NextStateMachineEventArg = null;
             } else if( smArgObj.rssiArray.length < 3 ) {
-                console.log('RWK-pollcheck:COUNTING: mmavalue ' + mmavalue + ', array length = ' + smArgObj.rssiArray.length);
+                console.log('RWK-pollcheck:COUNTING: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
                 NextStateMachineEvent    = 'more_steps';
                 NextStateMachineEventArg = smArgObj;
-                //smArgObj.rssiToBeat      = mmavalue;
             } else if ( RSSIAppearsWeaker( smArgObj ) ) {
-                console.log('RWK-pollcheck:LOWER: mmavalue ' + mmavalue + ', RSSIAppearsWeaker() = true');
+                console.log('RWK-pollcheck:LOWER: rssiInt_to_check ' + rssiInt_to_check + ', RSSIAppearsWeaker() = true');
                 NextStateMachineEvent    = 'rssi_is_lower';
                 NextStateMachineEventArg = smArgObj;
             } else {
-                console.log('RWK-pollcheck:NOT_LOWER: mmavalue ' + mmavalue + ', array length = ' + smArgObj.rssiArray.length);
+                console.log('RWK-pollcheck:NOT_LOWER: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
                 NextStateMachineEvent    = 'more_steps';
                 NextStateMachineEventArg = smArgObj;
                 
@@ -264,11 +269,13 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
         } else {
             console.log('RWK-pollcheck rssi:need_more_rssi: err = ' + err + 
                         ', last_rssi = ' + last_rssi + 
-                        ', MMA_rssi = ' + GetMMA_rssi() + 
-                        ', prev = ' + previous_rssi );
+                        ', HILO.HI = ' + HILO.HI + 
+                        ', rssiToBeat = ' + smArgObj.rssiToBeat );
             NextStateMachineEvent    = 'need_more_rssi';
             NextStateMachineEventArg = smArgObj; // cycle smArgObj to self
         }
+
+        process.send({ rssi: last_rssi, rssiMMA: mmavalue, rssiHI: HILO.HI });
     });    
 }
 function stateFunction_poll_check_and_track_rssi_exit( smArgObj ) {
@@ -533,31 +540,32 @@ function stateFunction_poll_rssi_restart_walk_entry( smArgObj ) {
         return;
     }
 
-    var previous_rssi = smArgObj.rssiToBeat;
-
     mySensorTag._peripheral.updateRssi(function (err, rssi) {
         last_rssi = rssi;
         ComputeMMA_rssi(rssi);
 
         mmavalue = GetMMA_rssi();
+        var HILO = Get_rssiHL();
 
         if( mmavalue !== MMA_unknown && get_and_decr_pollcheck_rssi_repeat_count() === 0 ) {
             console.log('pollcheck rssi-RESTART WALK: err = ' + err + 
                         ', last_rssi = ' + last_rssi + 
-                        ', MMA_rssi = ' + GetMMA_rssi() + ', f2i = ', float2int(mmavalue) + 
-                        ', prev = ' + previous_rssi );
+                        ', HI = ' + HILO.HI + 
+                        ', rssiToBeat = ' + smArgObj.rssiToBeat );
 
             // This is not necessary here, since this will be done again in "stateFunction_random_turn_0_to_90_exit()",
             //   but, since we are setting the rssiToBeat here, we might as well clear the array to avoid any confusion.
             EmptyRssiArray( smArgObj );
 
-            smArgObj.rssiToBeat      = mmavalue;
+            smArgObj.rssiToBeat      = HILO.HI;//mmavalue;
             NextStateMachineEvent    = 'done';
             NextStateMachineEventArg = smArgObj;
         } else {
             NextStateMachineEvent    = 'need_more_rssi';
             NextStateMachineEventArg = smArgObj; // cycle smArgObj to self
         }
+
+        process.send({ rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI });
     });    
 }
 function stateFunction_poll_rssi_restart_walk_exit( smArgObj ) {
@@ -884,19 +892,20 @@ process.on('message', function (m) {
             var smArgObj = { tagUUID: m.myTag };
             sm.notifyEvent('start', false, smArgObj);
         }
-    } else if( m.command !== 'undefined') {
-        if(m.command === 'get_temp') {
+    } else if( m.command !== 'undefined' ) {
+        if( m.command === 'get_temp' ) {
             // since javascript and node.js is single threaded, we won't
             //   need to mutex access to these globals
             CommandGeneratedEvent = 'get_temp';
             CommandGeneratedEventArg = null;
 
             //MotorsForward( 0.4, 500 );
-        } else if(m.command === 'random_walk') {
+        } else if( m.command === 'random_walk' ) {
             // (Note that the clearStateGenerated boolean should = false, for external command event)
             if( GetMMA_rssi() !== MMA_unknown ) {
+                var HILO = Get_rssiHL();
                 var smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
-                                 rssiToBeat: GetMMA_rssi(),
+                                 rssiToBeat: HILO.HI,//GetMMA_rssi(),
                                  rssiArray: [] };
                 CommandGeneratedEvent = 'rnd_walk';
                 CommandGeneratedEventArg = smArgObj;
@@ -905,6 +914,9 @@ process.on('message', function (m) {
             } else {
                 console.log('cannot start random walk, due to not having initial rssi');
             }
+        } else if( m.command === 'reset_rssiHL' ) {
+            // DEBUG/TEST:
+            Reset_rssiHL();
         }
     }
 });
@@ -1047,14 +1059,12 @@ function RSSIAppearsWeaker( smArgObj ) {
     
     var lowcount = 0;
 
-    var rssiToBeat_int = float2int( smArgObj.rssiToBeat );
-
     for	(index = 0; index < smArgObj.rssiArray.length; ++index) {
-        var data_int = float2int( smArgObj.rssiArray[index] );
+        var data_int = smArgObj.rssiArray[index];
 
-        console.log( 'RSSIAppearsWeaker: comparing data ' + data_int + ' < rssiToBeat ' + rssiToBeat_int + ' ?' );
+        console.log( 'RSSIAppearsWeaker: comparing data ' + data_int + ' < rssiToBeat ' + smArgObj.rssiToBeat + ' ?' );
 
-        if( data_int < rssiToBeat_int ) {
+        if( data_int < smArgObj.rssiToBeat ) {
             if( ++lowcount >= 2 ) {
                 console.log( 'RSSIAppearsWeaker: return true' );
                 return true;
@@ -1068,18 +1078,16 @@ function RSSIAppearsWeaker( smArgObj ) {
 function CountWeakRSSIStepsToUndo( smArgObj ) {
     var lowcount = 0;
 
-    var rssiToBeat_int = float2int( smArgObj.rssiToBeat );
-
     for	(index = 0; index < smArgObj.rssiArray.length; ++index) {
-        var data_int = float2int( smArgObj.rssiArray[index] );
+        var data_int = smArgObj.rssiArray[index];
 
-        console.log( 'CountWeakRSSIStepsToUndo: comparing data ' + data_int + ' < rssiToBeat ' + rssiToBeat_int + ' ?' );
+        console.log( 'CountWeakRSSIStepsToUndo: comparing data ' + data_int + ' < rssiToBeat ' + smArgObj.rssiToBeat + ' ?' );
 
         // the first weak rssi data point, will mean that step associated with that point and all subsequent points/steps should
         //   be "undone" or reversed.
 
-        if( data_int < rssiToBeat_int ) {
-            console.log( 'CountWeakRSSIStepsToUndo:1st weak pnt: ' + data_int + ' < ' + rssiToBeat_int + ' - index = ' + index);            
+        if( data_int < smArgObj.rssiToBeat ) {
+            console.log( 'CountWeakRSSIStepsToUndo:1st weak pnt: ' + data_int + ' < ' + smArgObj.rssiToBeat + ' - index = ' + index);            
             return ( smArgObj.rssiArray.length - index );
         }
     }
@@ -1089,16 +1097,32 @@ function CountWeakRSSIStepsToUndo( smArgObj ) {
 
 //////////////////////////////////////////////////
 
-var MMA_RSSI_CLOSEST = -59;
+var MMA_RSSI_CLOSEST = -60;//-59;
 
 var MMA_rssi    = 0;
 var MMA_n       = 6;
 var MMA_count   = 0;
 var MMA_unknown = -1000.0;
 
+var INVALID_RSSI_HIGH   = -1000;
+var INVALID_RSSI_LOW    = 0;
+
+var rssi_HIGH           = INVALID_RSSI_HIGH;
+var rssi_LOW            = INVALID_RSSI_LOW;
+
 function ComputeMMA_rssi(rssi) {
     MMA_rssi = ( (MMA_n - 1) * MMA_rssi + rssi ) / MMA_n;
     MMA_count++;
+
+    //console.log('compare rssi = ' + rssi + ' to rssi_HIGH = ' + rssi_HIGH );
+    if( rssi > rssi_HIGH ) {
+        rssi_HIGH = rssi;
+    }
+
+    //console.log('compare rssi = ' + rssi + ' to rssi_LOW = ' + rssi_LOW );
+    if( rssi < rssi_LOW ) {
+        rssi_LOW = rssi;
+    }
 }
 
 function GetMMA_rssi() {
@@ -1108,12 +1132,23 @@ function GetMMA_rssi() {
     return MMA_unknown;
 }
 
+function Reset_rssiHL() {
+    rssi_HIGH = INVALID_RSSI_HIGH;
+    rssi_LOW  = INVALID_RSSI_LOW;
+    console.log('Reset_rssiHL() - ' + rssi_HIGH + ', ' + rssi_LOW );
+}
+
+function Get_rssiHL() {
+    return { HI: rssi_HIGH, LO: rssi_LOW };
+}
+
 //////////////////////////////////////////////////
 
+var DEFAULT_POLLCHECK_REPEAT_WAITCOUNT = 40
 var pollcheck_rssi_repeat_count;
 
 function reset_pollcheck_repeat_count() {
-    pollcheck_rssi_repeat_count = 30;
+    pollcheck_rssi_repeat_count = DEFAULT_POLLCHECK_REPEAT_WAITCOUNT;
     console.log('reset_pollcheck_repeat_count: set to ' + pollcheck_rssi_repeat_count);
 }
 
