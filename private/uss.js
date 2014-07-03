@@ -5,7 +5,14 @@ var bone = require('bonescript');
 var pendingUSSFront_callbacks = [];
 
 function ussFrontConvertToInches(x) {
+    if ( isNaN( x.value ) ) {
+        //console.log('ussFrontConvertToInches:NaN [calling again] x = ' + JSON.stringify(x));
+        bone.analogRead('P9_40', ussFrontConvertToInches);
+        return;
+    }
+
     var distanceInches;
+
     analogVoltage = x.value * 1.8; // ADC Value converted to voltage
 
     //1.8v/512 = 0.003515625
@@ -31,6 +38,12 @@ var frontInches = function (usercallback, userarg) {
 var pendingUSSRear_callbacks = [];
 
 function ussRearConvertToInches(x) {
+    if ( isNaN( x.value ) ) {
+        //console.log('ussRearConvertToInches:NaN [calling again] x = ' + JSON.stringify(x));
+        bone.analogRead('P9_38', ussRearConvertToInches);
+        return;
+    }
+
     var distanceInches;
     analogVoltage = x.value * 1.8; // ADC Value converted to voltage
 
