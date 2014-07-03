@@ -194,7 +194,7 @@ function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
     }
 
     // one-shot timer callback (includes xtra time for uss to settle)
-    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
+    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+2000, smArgObj);
 }
 function stateFunction_random_turn_0_to_90_exit( smArgObj ) {
     console.log('stateFunction_random_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
@@ -383,17 +383,20 @@ function stateFunction_turn_90_entry( smArgObj ) {
     //    return;
     //}
 
-    if (    typeof smArgObj  === 'undefined' || smArgObj === null
-         || typeof smArgObj.rssiArray === 'undefined' || smArgObj.rssiArray === null || smArgObj.rssiArray.length == 0 ) {
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
         NextStateMachineEvent = 'error';
         NextStateMachineEventArg = null;
-        console.log('stateFunction_turn_90_entry: no smArgObj or rssiArray - abort');
+        console.log('stateFunction_turn_90_entry: no smArgObj - abort');
         return;
     }
 
-    // last stopping point will now be rssiToBeat
-    smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
-    
+    if ( typeof smArgObj.rssiArray !== 'undefined' && smArgObj.rssiArray !== null && smArgObj.rssiArray.length > 0 ) {
+        console.log('stateFunction_turn_90_entry: SETTING rssiToBeat ' + smArgObj.rssiToBeat + ' ==> ' + smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ] );
+        // last stopping point will now be rssiToBeat
+        smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
+    }
+    // else, array may be empty, since we clear it ourselves when we transition back to ourself!
+        
     var timeMs = 0;
 
     var substatecount = get_and_incr_turn_90_repeat_count();
@@ -407,7 +410,7 @@ function stateFunction_turn_90_entry( smArgObj ) {
 
         // one-shot timer callback, last (optional) boolean indicates to randomly
         //   set 'no_obstacle_rnd' to go to 'random_turn_0_to_90' instead of 'no_obstacle' to go to 'forward'
-        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj, true);
+        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
 
         // reset_pollcheck_repeat_count() is called in 'forward' state before transition to poll check state
     } else if( substatecount == 2 ) {
@@ -418,7 +421,7 @@ function stateFunction_turn_90_entry( smArgObj ) {
 
         // one-shot timer callback, last (optional) boolean indicates to randomly
         //   set 'no_obstacle_rnd' to go to 'random_turn_0_to_90' instead of 'no_obstacle' to go to 'forward'
-        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj, true);
+        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
         
         // reset_pollcheck_repeat_count() is called in 'forward' state before transition to poll check state
     } else if( substatecount == 3 ) {
@@ -507,7 +510,7 @@ function stateFunction_escape_turn_0_to_90_entry( smArgObj ) {
     }
 
     // one-shot timer callback (includes xtra time for uss to settle)
-    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+1000, smArgObj);
+    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+2000, smArgObj);
 }
 function stateFunction_escape_turn_0_to_90_exit( smArgObj ) {
     console.log('stateFunction_escape_turn_0_to_90_exit... smArgObj=' + JSON.stringify(smArgObj));
@@ -1038,7 +1041,7 @@ function DisconnectSensorTag(smArgObj) {
 }
 
 function TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events(smArgObj, boolUseRnd) {
-    console.log('TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events: calling uss.frontInches() - smArgObj = ' + smArgObj);
+    console.log('TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events: boolUseRnd = ' + boolUseRnd + '... calling uss.frontInches() - smArgObj = ' + smArgObj);
     // check ultrasonic after turn completes, and set event to go to next state
     if( boolUseRnd === true ) {
         uss.frontInches(CheckUSSCB_SetSMEvent_Rnd, smArgObj);
@@ -1049,27 +1052,23 @@ function TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events(smArgObj, boolUseR
 
 function CheckUSSCB_SetSMEvent_Rnd(distanceFloat, smArgObj) {
     if( distanceFloat > 9.0 ) {
-        console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + ' _____ CLEAR _____');
+        console.log('CheckUSSCB_SetSMEvent_Rnd: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + ' _____ CLEAR _____');
 
         var rnd = Math.random();
-        if( rnd > 0.6 ) {
+        if( rnd > 0.9 ) {
             NextStateMachineEvent    = 'no_obstacle_rnd';
         } else {
             NextStateMachineEvent    = 'no_obstacle';
         }
         NextStateMachineEventArg = smArgObj; //forward the previous rssi        
     } else {
-        console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + '#_#_#_#_# BLOCKED #_#_#_#_#');
+        console.log('CheckUSSCB_SetSMEvent_Rnd: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + '#_#_#_#_# BLOCKED #_#_#_#_#');
         NextStateMachineEvent    = 'obstacle';
         NextStateMachineEventArg = smArgObj; //pass along rssi to self
     }
 }
 
 function CheckUSSCB_SetSMEvent(distanceFloat, smArgObj) {
-    if( distanceFloat === NaN ) {
-        console.log('_____________CheckUSSCB_SetSMEvent:NaN: ' + distanceFloat + ', ' + JSON.stringify(smArgObj));
-    }
-
     if( distanceFloat > 9.0 ) {
         console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + ' _____ CLEAR _____');
         NextStateMachineEvent    = 'no_obstacle';
