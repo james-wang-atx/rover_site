@@ -207,6 +207,7 @@ function stateFunction_random_turn_0_to_90_exit( smArgObj ) {
 // [forward]
 function stateFunction_forward_entry( smArgObj ) {
     motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS);
+    Reset_rssiHL();
     // for now, no extra delay to let uss settle, since we're going to linger poll to let rssi settle
     setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'done', smArgObj);
 }
@@ -527,6 +528,8 @@ function stateFunction_escape_forward_entry( smArgObj ) {
 
     motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS);
     
+    Reset_rssiHL();
+
     --smArgObj.escape_steps;
 
     if( smArgObj.escape_steps <= 0 ) {
