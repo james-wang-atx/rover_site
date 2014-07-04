@@ -237,41 +237,49 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
             console.log('RWK-pollcheck rssi: err = ' + err + 
                         ', last_rssi = ' + last_rssi + 
                         ', HI = ' + HILO.HI + 
-                        ', rssiToBeat = ' + smArgObj.rssiToBeat );
+                        ', rssiToBeat = ' + smArgObj.rssiToBeat.HI );
 
             console.log('RWK-pollcheck rssi: HI = ' + HILO.HI + ', LO = ' + HILO.LO );
 
             var rssiInt_to_check = HILO.HI;
 
-            // add rssi data point to array
-            //smArgObj.rssiArray.push(mmavalue);
-            smArgObj.rssiArray.push(rssiInt_to_check);
+            // filter/validate and add rssi data point to array
+            var isGood = ValidatePushRssi( HILO, smArgObj );
             
-            if( rssiInt_to_check >= MMA_RSSI_CLOSEST ) {
-                console.log('RWK-updateRssi: reached MMA_RSSI_CLOSEST (' + MMA_RSSI_CLOSEST + ')');
-                NextStateMachineEvent    = 'rssi_is_highest';
-                NextStateMachineEventArg = null;
-            } else if( smArgObj.rssiArray.length < 3 ) {
-                console.log('RWK-pollcheck:COUNTING: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
-                NextStateMachineEvent    = 'more_steps';
-                NextStateMachineEventArg = smArgObj;
-            } else if ( RSSIAppearsWeaker( smArgObj ) ) {
-                console.log('RWK-pollcheck:LOWER: rssiInt_to_check ' + rssiInt_to_check + ', RSSIAppearsWeaker() = true');
-                NextStateMachineEvent    = 'rssi_is_lower';
-                NextStateMachineEventArg = smArgObj;
-            } else {
-                console.log('RWK-pollcheck:NOT_LOWER: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
-                NextStateMachineEvent    = 'more_steps';
-                NextStateMachineEventArg = smArgObj;
+            if( isGood === true ) {
+                if( rssiInt_to_check >= MMA_RSSI_CLOSEST ) {
+                    console.log('RWK-updateRssi: reached MMA_RSSI_CLOSEST (' + MMA_RSSI_CLOSEST + ')');
+                    NextStateMachineEvent    = 'rssi_is_highest';
+                    NextStateMachineEventArg = null;
+                } else if( smArgObj.rssiArray.length < 3 ) {
+                    console.log('RWK-pollcheck:COUNTING: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
+                    NextStateMachineEvent    = 'more_steps';
+                    NextStateMachineEventArg = smArgObj;
+                } else if ( RSSIAppearsWeaker( smArgObj ) ) {
+                    console.log('RWK-pollcheck:LOWER: rssiInt_to_check ' + rssiInt_to_check + ', RSSIAppearsWeaker() = true');
+                    NextStateMachineEvent    = 'rssi_is_lower';
+                    NextStateMachineEventArg = smArgObj;
+                } else {
+                    console.log('RWK-pollcheck:NOT_LOWER: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
+                    NextStateMachineEvent    = 'more_steps';
+                    NextStateMachineEventArg = smArgObj;
+
+                    // last stopping point will now be rssiToBeat
+                    smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
                 
-                // start new rssi array sequence (if we keep a long array, we're bound to find 2+ with lower rssi)
-                EmptyRssiArray( smArgObj );
+                    // start new rssi array sequence (if we keep a long array, we're bound to find 2+ with lower rssi)
+                    EmptyRssiArray( smArgObj );
+                }
+            } else {
+                console.log('RWK-pollcheck:DISCARDING: HI = ' + HILO.HI + ', LO = ' + HILO.LO + ', array length = ' + smArgObj.rssiArray.length);
+                NextStateMachineEvent    = 'more_steps';
+                NextStateMachineEventArg = smArgObj;            
             }
         } else {
             console.log('RWK-pollcheck rssi:need_more_rssi: err = ' + err + 
                         ', last_rssi = ' + last_rssi + 
                         ', HILO.HI = ' + HILO.HI + 
-                        ', rssiToBeat = ' + smArgObj.rssiToBeat );
+                        ', rssiToBeat = ' + smArgObj.rssiToBeat.HI );
             NextStateMachineEvent    = 'need_more_rssi';
             NextStateMachineEventArg = smArgObj; // cycle smArgObj to self
         }
@@ -306,7 +314,6 @@ function stateFunction_turn_180_entry( smArgObj ) {
 
     // last stopping point will now be rssiToBeat
     smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
-
 
     var TimeFor180Ms = LEFT_TURN_360_TIME_MS/2;
 
@@ -392,7 +399,7 @@ function stateFunction_turn_90_entry( smArgObj ) {
     }
 
     if ( typeof smArgObj.rssiArray !== 'undefined' && smArgObj.rssiArray !== null && smArgObj.rssiArray.length > 0 ) {
-        console.log('stateFunction_turn_90_entry: SETTING rssiToBeat ' + smArgObj.rssiToBeat + ' ==> ' + smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ] );
+        console.log('stateFunction_turn_90_entry: SETTING rssiToBeat ' + smArgObj.rssiToBeat.HI + ' ==> ' + smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ].HI );
         // last stopping point will now be rssiToBeat
         smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
     }
@@ -587,13 +594,13 @@ function stateFunction_poll_rssi_restart_walk_entry( smArgObj ) {
             console.log('pollcheck rssi-RESTART WALK: err = ' + err + 
                         ', last_rssi = ' + last_rssi + 
                         ', HI = ' + HILO.HI + 
-                        ', rssiToBeat = ' + smArgObj.rssiToBeat );
+                        ', rssiToBeat = ' + smArgObj.rssiToBeat.HI );
 
             // This is not necessary here, since this will be done again in "stateFunction_random_turn_0_to_90_exit()",
             //   but, since we are setting the rssiToBeat here, we might as well clear the array to avoid any confusion.
             EmptyRssiArray( smArgObj );
 
-            smArgObj.rssiToBeat      = HILO.HI;//mmavalue;
+            smArgObj.rssiToBeat      = HILO;
             NextStateMachineEvent    = 'done';
             NextStateMachineEventArg = smArgObj;
         } else {
@@ -942,7 +949,7 @@ process.on('message', function (m) {
             if( GetMMA_rssi() !== MMA_unknown ) {
                 var HILO = Get_rssiHL();
                 var smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
-                                 rssiToBeat: HILO.HI,//GetMMA_rssi(),
+                                 rssiToBeat: HILO,
                                  rssiArray: [] };
                 CommandGeneratedEvent = 'rnd_walk';
                 CommandGeneratedEventArg = smArgObj;
@@ -1102,11 +1109,11 @@ function RSSIAppearsWeaker( smArgObj ) {
     var lowcount = 0;
 
     for	(index = 0; index < smArgObj.rssiArray.length; ++index) {
-        var data_int = smArgObj.rssiArray[index];
+        var data_int = smArgObj.rssiArray[index].HI;
 
-        console.log( 'RSSIAppearsWeaker: comparing data ' + data_int + ' < rssiToBeat ' + smArgObj.rssiToBeat + ' ?' );
+        console.log( 'RSSIAppearsWeaker: comparing data ' + data_int + ' < rssiToBeat ' + smArgObj.rssiToBeat.HI + ' ?' );
 
-        if( data_int < smArgObj.rssiToBeat ) {
+        if( data_int < smArgObj.rssiToBeat.HI ) {
             if( ++lowcount >= 2 ) {
                 console.log( 'RSSIAppearsWeaker: return true' );
                 return true;
@@ -1121,21 +1128,85 @@ function CountWeakRSSIStepsToUndo( smArgObj ) {
     var lowcount = 0;
 
     for	(index = 0; index < smArgObj.rssiArray.length; ++index) {
-        var data_int = smArgObj.rssiArray[index];
+        var data_int = smArgObj.rssiArray[index].HI;
 
-        console.log( 'CountWeakRSSIStepsToUndo: comparing data ' + data_int + ' < rssiToBeat ' + smArgObj.rssiToBeat + ' ?' );
+        console.log( 'CountWeakRSSIStepsToUndo: comparing data ' + data_int + ' < rssiToBeat ' + smArgObj.rssiToBeat.HI + ' ?' );
 
         // the first weak rssi data point, will mean that step associated with that point and all subsequent points/steps should
         //   be "undone" or reversed.
 
-        if( data_int < smArgObj.rssiToBeat ) {
-            console.log( 'CountWeakRSSIStepsToUndo:1st weak pnt: ' + data_int + ' < ' + smArgObj.rssiToBeat + ' - index = ' + index);            
+        if( data_int < smArgObj.rssiToBeat.HI ) {
+            console.log( 'CountWeakRSSIStepsToUndo:1st weak pnt: ' + data_int + ' < ' + smArgObj.rssiToBeat.HI + ' - index = ' + index);            
             return ( smArgObj.rssiArray.length - index );
         }
     }
 
     return 0;
 }
+
+function ValidatePushRssi( HILO, smArgObj ) {
+    // -----------------------------------------------------
+    // -- discard legit looking weak points ("deadspots") --
+    // -----------------------------------------------------
+
+    var DEAD_SPOT_THRESHOLD     = 4;
+    var STRONG_SPOT_THRESHOLD   = 4;
+
+    var prev_rssi;
+    var prev_rssi_in_array = true;
+
+    if( smArgObj.rssiArray.length <= 0 ) {
+        prev_rssi = smArgObj.rssiToBeat;
+        prev_rssi_in_array = false;
+    } else {
+        prev_rssi = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
+    }
+
+    if( prev_rssi.HI > HILO.HI && ( ( prev_rssi.HI - HILO.HI ) >= DEAD_SPOT_THRESHOLD ) && prev_rssi.LO > HILO.LO ) {
+        // arriving at deadspot
+        // discard current point (don't push)
+        return false; // return false if we discard anything
+    } else if ( prev_rssi.HI < HILO.HI && ( ( HILO.HI - prev_rssi.HI ) >= DEAD_SPOT_THRESHOLD ) && prev_rssi.LO < HILO.LO ) {
+        // leaving deadspot
+        // discard previous point, while pushing current point (if previous was in array)
+        if( prev_rssi_in_array === true ) {
+            smArgObj.rssiArray.pop();
+            // push current point to end of array
+            smArgObj.rssiArray.push( HILO );
+        } else {
+            // previous was in rssiToBeat (array must be empty), just overwrite rssiToBeat with current point
+            smArgObj.rssiToBeat = HILO;
+        }
+        return false; // return false if we discard anything
+    }
+
+    // ----------------------------------------------
+    // -- discard abnormally looking strong points --
+    // ----------------------------------------------
+
+    if( prev_rssi.HI > HILO.HI && ( ( prev_rssi.HI - HILO.HI ) >= STRONG_SPOT_THRESHOLD ) && prev_rssi.LO < HILO.LO ) {
+        // leaving abnormal looking strong point
+        // discard previous point
+        if( prev_rssi_in_array === true ) {
+            smArgObj.rssiArray.pop();
+            // push current point to end of array
+            smArgObj.rssiArray.push( HILO );
+        } else {
+            // previous was in rssiToBeat (array must be empty), just overwrite rssiToBeat with current point
+            smArgObj.rssiToBeat = HILO;
+        }
+        return false; // return false if we discard anything
+    } else if ( prev_rssi.HI < HILO.HI && ( ( HILO.HI - prev_rssi.HI ) >= STRONG_SPOT_THRESHOLD ) && prev_rssi.LO > HILO.LO ) {
+        // arriving at abnormal looking strong point
+        // discard current point (don't push)
+        return false; // return false if we discard anything
+    }
+
+    // if we make it here, we're keeping the point and returning true
+    smArgObj.rssiArray.push( HILO );
+    return true;
+}
+
 
 //////////////////////////////////////////////////
 
