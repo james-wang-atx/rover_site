@@ -218,7 +218,7 @@ function stateFunction_forward_exit( smArgObj ) {
 
 // [poll_check_and_track_rssi]
 function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
-    console.log('stateFunction_poll_check_and_track_rssi_exit... smArgObj=' + JSON.stringify(smArgObj));
+    //console.log('stateFunction_poll_check_and_track_rssi_entry... smArgObj=' + JSON.stringify(smArgObj));
 
     if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
         NextStateMachineEvent = 'error';
@@ -234,11 +234,12 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
         var HILO = Get_rssiHL();
 
         if( mmavalue !== MMA_unknown && get_and_decr_pollcheck_rssi_repeat_count() === 0 ) {
-            console.log('RWK-pollcheck rssi: err = ' + err + 
-                        ', last_rssi = ' + last_rssi + 
-                        ', HI = ' + HILO.HI + 
-                        ', rssiToBeat = ' + smArgObj.rssiToBeat.HI );
+            //console.log('RWK-pollcheck rssi: err = ' + err + 
+            //            ', last_rssi = ' + last_rssi + 
+            //            ', HI = ' + HILO.HI + ', LO = ' + HILO.LO +
+            //            ', rssiToBeat = ' + smArgObj.rssiToBeat.HI );
 
+            console.log('RWK-pollcheck:updateRssi done: smArgObj=' + JSON.stringify(smArgObj));
             console.log('RWK-pollcheck rssi: HI = ' + HILO.HI + ', LO = ' + HILO.LO );
 
             var rssiInt_to_check = HILO.HI;
@@ -284,10 +285,10 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
                 NextStateMachineEventArg = smArgObj;            
             }
         } else {
-            console.log('RWK-pollcheck rssi:need_more_rssi: err = ' + err + 
-                        ', last_rssi = ' + last_rssi + 
-                        ', HILO.HI = ' + HILO.HI + 
-                        ', rssiToBeat = ' + smArgObj.rssiToBeat.HI );
+            //console.log('RWK-pollcheck rssi:need_more_rssi: err = ' + err + 
+            //            ', last_rssi = ' + last_rssi + 
+            //            ', HILO.HI = ' + HILO.HI + 
+            //            ', rssiToBeat = ' + smArgObj.rssiToBeat.HI );
             NextStateMachineEvent    = 'need_more_rssi';
             NextStateMachineEventArg = smArgObj; // cycle smArgObj to self
         }
@@ -1289,6 +1290,7 @@ function ValidatePushRssi( HILO, smArgObj ) {
         // leaving deadspot
         // discard previous point, while keeping the current point
         if( prev_rssi_in_array !== true ) {
+            console.log('ValidatePushRssi:LEAVING DEADSPOT in rssiToBeat: overwrite ' + smArgObj.rssiToBeat.HI + ' with ' + HILO.HI);
             // previous was in rssiToBeat (array must be empty), just overwrite rssiToBeat with current point
             smArgObj.rssiToBeat = HILO;
         } else {
@@ -1302,12 +1304,20 @@ function ValidatePushRssi( HILO, smArgObj ) {
 
             // validate "spot" (single point) of signal weakness (i.e. prev_rssi is lower than current and also lower than point before that)
             if ( prev_rssi.HI < prev_prev_rssi.HI ) {
-                smArgObj.rssiArray.pop();
+                
+                var popped = smArgObj.rssiArray.pop();
+
+                console.log('ValidatePushRssi:LEAVING DEADSPOT in rssiArray: popped = ' + popped.HI + ', pushed = ' + HILO.HI + ', prev_prev_rssi.HI = ' + prev_prev_rssi.HI );
+
                 // push current point to end of array
                 smArgObj.rssiArray.push( HILO );
+
+                return false; // return false if we discard anything
+            } else {
+                // previous point is not considered a deadspot since the spot previous to that did not have a stronger signal
+                console.log('ValidatePushRssi:LEAVING weakspot in rssiArray:result after push: ' + prev_prev_rssi.HI + ' ' + prev_rssi.HI + ' ' + HILO.HI );
             }
         }
-        return false; // return false if we discard anything
     }
 
     // ---------------------------------------------
@@ -1318,10 +1328,12 @@ function ValidatePushRssi( HILO, smArgObj ) {
         // leaving abnormal looking strong point
         // discard previous point
         if( prev_rssi_in_array === true ) {
+            console.log('ValidatePushRssi:LEAVING HOTSPOT in rssiArray: prev = ' + prev_rssi.HI + ' current = ' + HILO.HI);
             smArgObj.rssiArray.pop();
             // push current point to end of array
             smArgObj.rssiArray.push( HILO );
         } else {
+            console.log('ValidatePushRssi:LEAVING HOTSPOT in rssiToBeat: prev = ' + prev_rssi.HI + ' current = ' + HILO.HI);
             // previous was in rssiToBeat (array must be empty), just overwrite rssiToBeat with current point
             smArgObj.rssiToBeat = HILO;
         }
@@ -1329,9 +1341,11 @@ function ValidatePushRssi( HILO, smArgObj ) {
     } else if ( prev_rssi.HI < HILO.HI && ( ( HILO.HI - prev_rssi.HI ) >= STRONG_SPOT_THRESHOLD ) && prev_rssi.LO > HILO.LO ) {
         // arriving at abnormal looking strong point
         // discard current point (don't push)
+        console.log('ValidatePushRssi:ARRIVING HOTSPOT: prev = ' + prev_rssi.HI + ', current = ' + HILO.HI);
         return false; // return false if we discard anything
     }
 
+    console.log('ValidatePushRssi:PUSHING: current = ' + HILO.HI);
     // if we make it here, we're keeping the point and returning true
     smArgObj.rssiArray.push( HILO );
     return true;
