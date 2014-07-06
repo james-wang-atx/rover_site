@@ -156,9 +156,9 @@ function stateFunction_get_temperature_exit( smArgObj ) {
 }
 
 var LEFT_TURN_DUTY         = 0.5;
-var LEFT_TURN_360_TIME_MS  = 2150;
+var LEFT_TURN_360_TIME_MS  = 2040;  // accurate when battery is nearly charged
 var RIGHT_TURN_DUTY        = 0.5;
-var RIGHT_TURN_360_TIME_MS = 2500;
+var RIGHT_TURN_360_TIME_MS = 2040;  // accurate when battery is nearly charged
 
 var STD_FWD_DUTY   = 0.4;
 var STD_FWD_TIMEMS = 500;
@@ -248,35 +248,50 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
             var isGood = ValidatePushRssi( HILO, smArgObj );
             
             if( isGood === true ) {
-                if( rssiInt_to_check >= MMA_RSSI_CLOSEST ) {
-                    console.log('RWK-updateRssi: reached MMA_RSSI_CLOSEST (' + MMA_RSSI_CLOSEST + ')');
-                    NextStateMachineEvent    = 'rssi_is_highest';
-                    NextStateMachineEventArg = null;
-                } else if( smArgObj.rssiArray.length < 3 ) {
-                    console.log('RWK-pollcheck:COUNTING: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
+                if( smArgObj.rssiToBeatStepToRESETCounter === 1 ) {
+                    smArgObj.rssiToBeatStepToRESETCounter = 0;
+                    EmptyRssiArray( smArgObj );
+                    smArgObj.rssiToBeat      = HILO; 
                     NextStateMachineEvent    = 'more_steps';
                     NextStateMachineEventArg = smArgObj;
+                    console.log('RWK-updateRssi:[rssiToBeatStepToRESETCounter === 1] resetting array and rssiToBeat - ' + JSON.stringify(HILO));
                 } else {
-                    var rssiDirection = DetermineRssiDirection( smArgObj );
+                    if( smArgObj.rssiToBeatStepToRESETCounter > 0 ) {
+                        --smArgObj.rssiToBeatStepToRESETCounter;
+                    }
 
-                    if ( rssiDirection < 0 ) {
-                        console.log('RWK-pollcheck:LOWER: rssiInt_to_check ' + rssiInt_to_check);
-                        NextStateMachineEvent    = 'rssi_is_lower';
-                        NextStateMachineEventArg = smArgObj;
-                    } else {
+                    if( rssiInt_to_check >= MMA_RSSI_CLOSEST ) {
+                        console.log('RWK-updateRssi: reached MMA_RSSI_CLOSEST (' + MMA_RSSI_CLOSEST + ')');
+                        NextStateMachineEvent    = 'rssi_is_highest';
+                        NextStateMachineEventArg = null;
+                    } else if( smArgObj.rssiArray.length < 3 ) {
+                        console.log('RWK-pollcheck:COUNTING: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
                         NextStateMachineEvent    = 'more_steps';
                         NextStateMachineEventArg = smArgObj;
+                    } else {
+                        var rssiDirection = DetermineRssiDirection( smArgObj );
 
-                        if( rssiDirection > 0 ) {
-                            // last stopping point will now be rssiToBeat
-                            smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
-                            console.log('RWK-pollcheck:HIGHER: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
+                        if ( rssiDirection < 0 ) {
+                            // moving away from senorTag
+                            console.log('RWK-pollcheck:LOWER: rssiInt_to_check ' + rssiInt_to_check);
+                            NextStateMachineEvent    = 'rssi_is_lower';
+                            NextStateMachineEventArg = smArgObj;
                         } else {
-                            console.log('RWK-pollcheck:NOT SURE: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
-                        }
+                            NextStateMachineEvent    = 'more_steps';
+                            NextStateMachineEventArg = smArgObj;
 
-                        // start new rssi array sequence (if we keep a long array, we're bound to find 2+ with lower rssi)
-                        EmptyRssiArray( smArgObj );
+                            if( rssiDirection > 0 ) {
+                                // moving towrads sensorTag: last stopping point will now be rssiToBeat
+                                smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
+                                console.log('RWK-pollcheck:HIGHER: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
+                            } else {
+                                // no clear indication of direction towards or away from sensorTag
+                                console.log('RWK-pollcheck:NOT SURE: rssiInt_to_check ' + rssiInt_to_check + ', array length = ' + smArgObj.rssiArray.length);
+                            }
+
+                            // start new rssi array sequence (if we keep a long array, we're bound to find 2+ with lower rssi)
+                            EmptyRssiArray( smArgObj );
+                        }
                     }
                 }
             } else {
@@ -415,7 +430,9 @@ function stateFunction_turn_90_entry( smArgObj ) {
         smArgObj.rssiToBeat = smArgObj.rssiArray[ smArgObj.rssiArray.length - 1 ];
     }
     // else, array may be empty, since we clear it ourselves when we transition back to ourself!
-        
+    
+    smArgObj.rssiToBeatStepToRESETCounter = 1;
+
     var timeMs = 0;
 
     var substatecount = get_and_incr_turn_90_repeat_count();
@@ -449,7 +466,7 @@ function stateFunction_turn_90_entry( smArgObj ) {
         motor.turnright(RIGHT_TURN_DUTY, timeMs);
 
         // go to 'start_escape' -- this will start the "ESCAPE" sequence, which will no longer require smArgObj, though we retain it
-        //   in order to re-enter the walk (@ 'random_turn_0_to_90')
+        //   in order to re-enter the walk (@ 'random_turn_0_to_90'), when escape states are done
         setTimeout(Delay_StateTransition_Timer, timeMs, 'double_obstacle', smArgObj);
     } else {
         console.log('stateFunction_turn_90_entry: substate error!');
@@ -937,49 +954,6 @@ function StateMachine( statesArray ) {
 
 sm = new StateMachine(states);
 
-///////////////////////////////////////////////////////////
-// Process Message Handler (Messages from Parent app.js) //
-///////////////////////////////////////////////////////////
-
-process.on('message', function (m) {
-    console.log('CHILD got message:', m);
-    if (typeof m.hello !== 'undefined' && typeof m.myTag !== 'undefined') {
-        if( sm.getStatus() === 'idle' ) {
-            // (Note that the clearStateGenerated boolean should = false, for external command event)
-            var smArgObj = { tagUUID: m.myTag };
-            sm.notifyEvent('start', false, smArgObj);
-        }
-    } else if( m.command !== 'undefined' ) {
-        if( m.command === 'get_temp' ) {
-            // since javascript and node.js is single threaded, we won't
-            //   need to mutex access to these globals
-            CommandGeneratedEvent = 'get_temp';
-            CommandGeneratedEventArg = null;
-
-            //MotorsForward( 0.4, 500 );
-        } else if( m.command === 'random_walk' ) {
-            // (Note that the clearStateGenerated boolean should = false, for external command event)
-            if( GetMMA_rssi() !== MMA_unknown ) {
-                var HILO = Get_rssiHL();
-                var smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
-                                 rssiToBeat: HILO,
-                                 rssiArray: [] };
-                CommandGeneratedEvent = 'rnd_walk';
-                CommandGeneratedEventArg = smArgObj;
-
-                testcount = 1; // re-arm test code
-            } else {
-                console.log('cannot start random walk, due to not having initial rssi');
-            }
-        } else if( m.command === 'reset_rssiHL' ) {
-            // DEBUG/TEST:
-            Reset_rssiHL();
-        }
-    }
-});
-
-process.send({ foo: 'bar' });
-
 //////////////////////////////////////////////
 // Timer-based strobe for the State Machine //
 //////////////////////////////////////////////
@@ -1004,6 +978,48 @@ function startTimer() {
 }
 
 startTimer();
+
+///////////////////////////////////////////////////////////
+// Process Message Handler (Messages from Parent app.js) //
+///////////////////////////////////////////////////////////
+
+process.on('message', function (m) {
+    console.log('CHILD got message:', m);
+    if (typeof m.hello !== 'undefined' && typeof m.myTag !== 'undefined') {
+        if( sm.getStatus() === 'idle' ) {
+            // (Note that the clearStateGenerated boolean should = false, for external command event)
+            var smArgObj = { tagUUID: m.myTag };
+            sm.notifyEvent('start', false, smArgObj);
+        }
+    } else if( m.command !== 'undefined' ) {
+        if( m.command === 'get_temp' ) {
+            // since javascript and node.js is single threaded, we won't
+            //   need to mutex access to these globals
+            CommandGeneratedEvent = 'get_temp';
+            CommandGeneratedEventArg = null;
+        } else if( m.command === 'random_walk' ) {
+            // (Note that the clearStateGenerated boolean should = false, for external command event)
+            if( GetMMA_rssi() !== MMA_unknown ) {
+                var HILO = Get_rssiHL();
+                var smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
+                                 rssiToBeat: HILO,
+                                 rssiToBeatStepToRESETCounter: 0,
+                                 rssiArray: [] };
+                CommandGeneratedEvent = 'rnd_walk';
+                CommandGeneratedEventArg = smArgObj;
+
+                testcount = 1; // re-arm test code
+            } else {
+                console.log('cannot start random walk, due to not having initial rssi');
+            }
+        } else if( m.command === 'reset_rssiHL' ) {
+            // TEST (this message is sent by parent when it activates motor controls based on web client page activity):
+            Reset_rssiHL();
+        }
+    }
+});
+
+process.send({ foo: 'bar' });
 
 ///////////////////////////////////////////////////////////////////
 // Helper functions                                              //
@@ -1171,8 +1187,8 @@ var STRONG_SPOT_THRESHOLD   = 4;
 var RSSI_POINTS_NEEDED      = 3;
 var RSSI_MIN_VOTES          = 2;
 
-// \returns 1   if rssi appears stronger
-//          0   if rssi direction cannot be determined
+// \returns  1  if rssi appears stronger
+//           0  if rssi direction cannot be determined
 //          -1  if rssi appears weaker
 function DetermineRssiDirection( smArgObj ) {
     // check for at least 2 data points where rssi is lower than smArgObj.rssiToBeat
@@ -1290,9 +1306,13 @@ function ValidatePushRssi( HILO, smArgObj ) {
         // leaving deadspot
         // discard previous point, while keeping the current point
         if( prev_rssi_in_array !== true ) {
-            console.log('ValidatePushRssi:LEAVING DEADSPOT in rssiToBeat: overwrite ' + smArgObj.rssiToBeat.HI + ' with ' + HILO.HI);
+
+            // for now do nothing here, since we really need the previous spot to prevent false deadspot replacement
+
+            //console.log('ValidatePushRssi:LEAVING DEADSPOT in rssiToBeat: overwrite ' + smArgObj.rssiToBeat.HI + ' with ' + HILO.HI);
             // previous was in rssiToBeat (array must be empty), just overwrite rssiToBeat with current point
-            smArgObj.rssiToBeat = HILO;
+            //smArgObj.rssiToBeat = HILO;
+
         } else {
             var prev_prev_rssi;
 
