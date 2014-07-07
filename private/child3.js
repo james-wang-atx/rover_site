@@ -260,19 +260,22 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
                 //   we've recorded previously (this generally happens when we scan/turn to avoid an obstacle or
                 //   turn 90 when we think we're moving tangentially away from the sensorTag)
                 if( smArgObj.rssiToBeatStepToRESETCounter === 1 ) {
-                    if( smArgObj.rssiToAvoid.HI !== HILO.HI ) {
-                        smArgObj.rssiToBeatStepToRESETCounter = 0;
-                        EmptyRssiArray( smArgObj );
-                        smArgObj.rssiToBeat      = HILO; 
-                        NextStateMachineEvent    = 'more_steps';
-                        NextStateMachineEventArg = smArgObj;
+                    
+                    EmptyRssiArray( smArgObj );
+
+                    if( smArgObj.rssiToAvoid === null || smArgObj.rssiToAvoid.HI !== HILO.HI ) {
+                        smArgObj.rssiToBeatStepToRESETCounter = 0;                        
+                        
+                        smArgObj.rssiToBeat      = HILO;
+                        smArgObj.rssiToAvoid     = null; 
+
                         console.log('RWK-updateRssi:[rssiToBeatStepToRESETCounter === 1] resetting array and rssiToBeat - ' + JSON.stringify(HILO));
                     } else {
-                        console.log('RWK-updateRssi:[rssiToBeatStepToRESETCounter === 1] rssiToAvoid.HI ' + smArgObj.rssiToAvoid.HI + ' is same as HILO.HI ' + HILO.HI + ', keep moving...');
-                        EmptyRssiArray( smArgObj );
-                        NextStateMachineEvent    = 'more_steps';
-                        NextStateMachineEventArg = smArgObj;                    
+                        console.log('RWK-updateRssi:[rssiToBeatStepToRESETCounter === 1] not resetting: rssiToAvoid.HI ' + smArgObj.rssiToAvoid.HI + ' == HILO.HI ' + HILO.HI + ', keep moving...');
                     }
+
+                    NextStateMachineEvent    = 'more_steps';
+                    NextStateMachineEventArg = smArgObj;
                 } else {
                     if( smArgObj.rssiToBeatStepToRESETCounter > 0 ) {
                         --smArgObj.rssiToBeatStepToRESETCounter;
