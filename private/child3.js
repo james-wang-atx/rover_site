@@ -81,7 +81,7 @@ function stateFunction_poll_rssi_entry( smArgObj ) {
             }
 
             var rssiMMA = float2int(GetMMA_rssi());
-            process.send({ rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI });
+            process.send({ rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI, rssiLO: HILO.LO });
         });
 
         // default behavior --> poll again
@@ -341,7 +341,7 @@ function stateFunction_poll_check_and_track_rssi_entry( smArgObj ) {
             NextStateMachineEventArg = smArgObj; // cycle smArgObj to self
         }
 
-        process.send({ rssi: last_rssi, rssiMMA: mmavalue, rssiHI: HILO.HI });
+        process.send({ rssi: last_rssi, rssiMMA: mmavalue, rssiHI: HILO.HI, rssiLO: HILO.LO });
     });    
 }
 function stateFunction_poll_check_and_track_rssi_exit( smArgObj ) {
@@ -757,7 +757,7 @@ function stateFunction_poll_rssi_restart_walk_entry( smArgObj ) {
             NextStateMachineEventArg = smArgObj; // cycle smArgObj to self
         }
 
-        process.send({ rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI });
+        process.send({ rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI, rssiLO: HILO.LO });
     });    
 }
 function stateFunction_poll_rssi_restart_walk_exit( smArgObj ) {

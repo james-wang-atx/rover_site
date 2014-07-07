@@ -292,7 +292,7 @@ var n = cp.fork(__dirname + '/private/child3.js');
 n.on('message', function (m) {
     //console.log('PARENT got message:', m);
     if (typeof m.rssi !== 'undefined') {
-        last_rssi = '' + m.rssi + ', HI ' + m.rssiHI; //', MMA ' + m.rssiMMA;
+        last_rssi = '' + m.rssi + '[HI=' + m.rssiHI + ', LO=' + m.rssiLO + ']'; //', MMA ' + m.rssiMMA;
     } else if (typeof m.temperature !== 'undefined') {
         temperature = m.temperature;
         if (outstanding_response !== null) {
