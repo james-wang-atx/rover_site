@@ -12,6 +12,7 @@ function displayImage() {
   //pong ^= 1;
   //document.getElementById("camimg").src = "images/last_outputHD.jpg?x=" + counter;
   document.getElementById("camimg").src = "/snapshot?x=" + counter;
+  document.getElementById("edges").src = "/edges?x=" + counter;
   counter += 1;
 
   LoadTextAreaFromUrl("/uss/front", document.getElementById("UltrasonicFront"));
