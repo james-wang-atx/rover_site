@@ -201,8 +201,6 @@ app.post('/control*', function (req, res) {
 app.get('/snapshot', function (req, res) {
   var fd = fs.openSync(__dirname + '/private/snapshot.lockfile', 'r');
 
-  //updateUltrasonics();
-
   fs.flock(fd, 'sh', function (err) {
     if (err) {
       console.log("---------> Couldn't lock file");
@@ -267,6 +265,70 @@ app.get('/snapshot', function (req, res) {
 
     fs.closeSync(fd);
   })
+
+})
+
+app.get('/edges', function (req, res) {
+    var fd = fs.openSync(__dirname + '/private/snapshot.lockfile', 'r');
+
+    fs.flock(fd, 'sh', function (err) {
+        if (err) {
+            console.log("---------> Couldn't lock file");
+            res.writeHead(500);
+            res.end();
+        }
+        else {
+            // file is locked
+            //console.log('LOCKED...');
+
+            var LastModifiedDate;
+
+            fs.stat(__dirname + '/private/last_outputEdges.png', function (err, stats) {
+                if (!err) {
+                    //console.log('stats.mtime ' + stats.mtime);
+                    LastModifiedDate = new Date(Date.parse(stats.mtime));
+                }
+            });
+
+            // file is locked
+            fs.readFile(__dirname + '/private/last_outputEdges.png', function (err, data) {
+                if (err) {
+                    res.writeHead(404);
+                    res.end();
+                }
+                else if (data.length == 0) {
+                    res.writeHead(304);
+                    res.end();
+                }
+                else {
+                    if (typeof LastModifiedDate === 'undefined') {
+                        res.writeHead(200, { 'Content-Type': 'image/png',
+                            'Content-Length': data.length
+                        });
+                    }
+                    else {
+                        res.writeHead(200, { 'Content-Type': 'image/png',
+                            'Content-Length': data.length,
+                            'Last-Modified': LastModifiedDate.toString()
+                        }); //RFC2822 string
+                    }
+                    res.write(data);
+                    res.end();
+                }
+            });
+        }
+
+        fs.flock(fd, 'un', function (err) {
+            if (err) {
+                console.log("---------> Couldn't unlock file");
+            }
+            else {
+                //console.log('UNLOCKED...');
+            }
+        })
+
+        fs.closeSync(fd);
+    })
 
 })
 
