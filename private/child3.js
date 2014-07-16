@@ -81,7 +81,7 @@ function stateFunction_poll_rssi_entry( smArgObj ) {
             }
 
             var rssiMMA = float2int(GetMMA_rssi());
-            process.send({ rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI, rssiLO: HILO.LO });
+            process.send( { rssi: last_rssi, rssiMMA: rssiMMA, rssiHI: HILO.HI, rssiLO: HILO.LO } );
         });
 
         // default behavior --> poll again

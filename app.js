@@ -13,6 +13,7 @@ var exec    = cp.exec;
 var motor   = require('./private/motor');
 var uss     = require('./private/uss');
 
+
 bone.pinMode("USR3", bone.OUTPUT);
 var whichButton = 'USR3';
 
@@ -192,6 +193,26 @@ app.post('/control*', function (req, res) {
     res.end();
 })
 
+var cmd_req_s = [];
+var cmd_res_s = [];
+
+function puts(error, stdout, stderr) {
+    var req = cmd_req_s.pop();
+    var res = cmd_res_s.pop();
+
+    if (req != null && res != null) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.write(stdout);
+        res.end();
+    }
+}
+
+app.get('/barcode', function (req, res) {
+    cmd_req_s.push( req );
+    cmd_res_s.push( res );
+    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", puts);
+})
+
 // 'sh' == LOCK_SH == Shared lock (for reading)
 // 'ex' == LOCK_EX == Exclusive lock (for writing)
 // 'nb' == LOCK_NB == Non-blocking request
@@ -354,7 +375,8 @@ var n = cp.fork(__dirname + '/private/child3.js');
 n.on('message', function (m) {
     //console.log('PARENT got message:', m);
     if (typeof m.rssi !== 'undefined') {
-        last_rssi = '' + m.rssi + '[HI=' + m.rssiHI + ', LO=' + m.rssiLO + ']'; //', MMA ' + m.rssiMMA;
+        console.log('PARENT got message:', JSON.stringify(m));
+        last_rssi = '' + m.rssi + '[HI=' + m.rssiHI + ', LO=' + m.rssiLO + ']';
     } else if (typeof m.temperature !== 'undefined') {
         temperature = m.temperature;
         if (outstanding_response !== null) {
