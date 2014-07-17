@@ -17,6 +17,11 @@ block content
     | Edge Detection:
   p
     +imglink('edges', '/edges?x=0', '384', '216')
+  p
+    | Barcode scan result:
+  p
+    textarea(id="barcode", name="barcode", rows=3, cols=45)
+        | unknown
 
 block sidebar
   .widget
@@ -54,11 +59,11 @@ block sidebar
             div(data-role='fieldcontain')
               fieldset(data-role='controlgroup')
                 label(for='LTIME') LTIME
-                   input(id='LTIME',type='text',value='500',placeholder='500',name='LTIME')
+                   input(id='LTIME',type='text',value='255',placeholder='255',name='LTIME')
             div(data-role='fieldcontain')
               fieldset(data-role='controlgroup')
                 label(for='LDUTY') LDUTY
-                   input(id='LDUTY',type='text',value='0.3',placeholder='0.3',name='LDUTY')
+                   input(id='LDUTY',type='text',value='0.5',placeholder='0.5',name='LDUTY')
             div(data-role='fieldcontain')   
               input(type='submit',value='LFT',data-transition='fade', data-theme='c')
       div
@@ -67,11 +72,11 @@ block sidebar
                 div(data-role='fieldcontain')
                   fieldset(data-role='controlgroup')
                     label(for='RTIME') RTIME
-                       input(id='RTIME',type='text',value='500',placeholder='500',name='RTIME')
+                       input(id='RTIME',type='text',value='300',placeholder='300',name='RTIME')
                 div(data-role='fieldcontain')
                   fieldset(data-role='controlgroup')
                     label(for='RDUTY') RDUTY
-                       input(id='RDUTY',type='text',value='0.3',placeholder='0.3',name='RDUTY')
+                       input(id='RDUTY',type='text',value='0.5',placeholder='0.5',name='RDUTY')
                 div(data-role='fieldcontain')   
                   input(type='submit',value='RGT',data-transition='fade', data-theme='c')
       .mcontrolLeft
@@ -97,7 +102,7 @@ block sidebar
             | unknown
     h1 Bluetooth
     div
-        textarea(id="RSSI", name="RSSI", rows=1)
+        textarea(id="RSSI", name="RSSI", rows=1, cols=43)
             | unknown
 
     script(type="text/javascript").

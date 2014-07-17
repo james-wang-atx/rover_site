@@ -205,12 +205,19 @@ function puts(error, stdout, stderr) {
         res.write(stdout);
         res.end();
     }
+
+    var barcode_result = JSON.parse(stdout);
+    //console.log('BARCODE RESULT: ' + JSON.stringify(barcode_result));
+
+    if ( barcode_result.match_count > 0 ) {
+        console.log('BARCODE RESULT: match_count = ' + barcode_result.match_count);
+    }
 }
 
 app.get('/barcode', function (req, res) {
     cmd_req_s.push( req );
     cmd_res_s.push( res );
-    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", puts);
+    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png -digits 12", puts);
 })
 
 // 'sh' == LOCK_SH == Shared lock (for reading)
