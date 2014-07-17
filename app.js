@@ -193,31 +193,38 @@ app.post('/control*', function (req, res) {
     res.end();
 })
 
-var cmd_req_s = [];
 var cmd_res_s = [];
 
-function puts(error, stdout, stderr) {
-    var req = cmd_req_s.pop();
-    var res = cmd_res_s.pop();
+function sendbarcode(error, stdout, stderr) {
+/*
+    if (typeof stdout !== 'undefined' && stdout !== null) {
+        try {
+            var barcode_result = JSON.parse(stdout);
 
-    if (req != null && res != null) {
+            if (barcode_result.match_count > 0) {
+                console.log('BARCODE RESULT: match_count = ' + barcode_result.match_count);
+                console.log('BARCODE RESULT: ' + JSON.stringify(barcode_result));
+            }
+        }
+        catch (err) {
+            console.log('BARCODE RESULT PARSE ERROR: error = ' + error + ', stdout = ' + stdout);
+        }
+    }
+*/  
+    while (cmd_res_s.length > 0) {
+        res = cmd_res_s.pop();
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.write(stdout);
         res.end();
     }
-
-    var barcode_result = JSON.parse(stdout);
-    //console.log('BARCODE RESULT: ' + JSON.stringify(barcode_result));
-
-    if ( barcode_result.match_count > 0 ) {
-        console.log('BARCODE RESULT: match_count = ' + barcode_result.match_count);
-    }
 }
 
 app.get('/barcode', function (req, res) {
-    cmd_req_s.push( req );
-    cmd_res_s.push( res );
-    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png -digits 12", puts);
+    cmd_res_s.push(res);
+    if (cmd_res_s.length == 1) {
+        exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", sendbarcode);
+    }
 })
 
 // 'sh' == LOCK_SH == Shared lock (for reading)
@@ -382,7 +389,7 @@ var n = cp.fork(__dirname + '/private/child3.js');
 n.on('message', function (m) {
     //console.log('PARENT got message:', m);
     if (typeof m.rssi !== 'undefined') {
-        console.log('PARENT got message:', JSON.stringify(m));
+        //console.log('PARENT got message:', JSON.stringify(m));
         last_rssi = '' + m.rssi + '[HI=' + m.rssiHI + ', LO=' + m.rssiLO + ']';
     } else if (typeof m.temperature !== 'undefined') {
         temperature = m.temperature;
