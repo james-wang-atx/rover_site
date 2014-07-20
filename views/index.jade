@@ -42,7 +42,7 @@ block sidebar
     p
     h1 BASIC MOVEMENT
     div
-      .mcontrolLeft
+      .mcontrol
           form(name="ControlInput", action="/control?dir=FWD", method="post")
             div(data-role='fieldcontain')
               fieldset(data-role='controlgroup')
@@ -54,7 +54,19 @@ block sidebar
                    input(id='FDUTY',type='text',value='0.4',placeholder='0.4',name='FDUTY')
             div(data-role='fieldcontain')   
               input(type='submit',value='FWD',data-transition='fade', data-theme='c')
-      .mcontrolLeft
+      .mcontrol
+          form(name="ControlInput", action="/control?dir=BCK", method="post")
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='BTIME') BTIME
+                   input(id='BTIME',type='text',value='500',placeholder='500',name='BTIME')
+            div(data-role='fieldcontain')
+              fieldset(data-role='controlgroup')
+                label(for='BDUTY') BDUTY
+                   input(id='BDUTY',type='text',value='0.4',placeholder='0.4',name='BDUTY')
+            div(data-role='fieldcontain')   
+                input(type='submit',value='BCK',data-transition='fade', data-theme='c')
+      .mcontrol
           form(name="ControlInput", action="/control?dir=LFT", method="post")
             div(data-role='fieldcontain')
               fieldset(data-role='controlgroup')
@@ -66,34 +78,29 @@ block sidebar
                    input(id='LDUTY',type='text',value='0.5',placeholder='0.5',name='LDUTY')
             div(data-role='fieldcontain')   
               input(type='submit',value='LFT',data-transition='fade', data-theme='c')
-      div
-        .mcontrolLeft
-              form(name="ControlInput", action="/control?dir=RGT", method="post")
-                div(data-role='fieldcontain')
-                  fieldset(data-role='controlgroup')
-                    label(for='RTIME') RTIME
-                       input(id='RTIME',type='text',value='300',placeholder='300',name='RTIME')
-                div(data-role='fieldcontain')
-                  fieldset(data-role='controlgroup')
-                    label(for='RDUTY') RDUTY
-                       input(id='RDUTY',type='text',value='0.5',placeholder='0.5',name='RDUTY')
-                div(data-role='fieldcontain')   
-                  input(type='submit',value='RGT',data-transition='fade', data-theme='c')
-      .mcontrolLeft
-          form(name="ControlInput", action="/control?dir=BCK", method="post")
+      .mcontrol
+            form(name="ControlInput", action="/control?dir=RGT", method="post")
             div(data-role='fieldcontain')
-              fieldset(data-role='controlgroup')
-                label(for='BTIME') BTIME
-                   input(id='BTIME',type='text',value='500',placeholder='500',name='BTIME')
+                fieldset(data-role='controlgroup')
+                label(for='RTIME') RTIME
+                    input(id='RTIME',type='text',value='300',placeholder='300',name='RTIME')
             div(data-role='fieldcontain')
-              fieldset(data-role='controlgroup')
-                label(for='BDUTY') BDUTY
-                   input(id='BDUTY',type='text',value='0.4',placeholder='0.4',name='BDUTY')
+                fieldset(data-role='controlgroup')
+                label(for='RDUTY') RDUTY
+                    input(id='RDUTY',type='text',value='0.5',placeholder='0.5',name='RDUTY')
             div(data-role='fieldcontain')   
-              input(type='submit',value='BCK',data-transition='fade', data-theme='c')
-        form(name="ControlInput", action="/control?RWK=ON", method="post")
+                input(type='submit',value='RGT',data-transition='fade', data-theme='c')
+    h1
+    h1 STATE_MACHINE
+    div
+      form(name="ControlInput", action="/control?RWK=ON", method="post")
           div(data-role='fieldcontain')   
             input(type='submit',value='RWK',data-transition='fade', data-theme='c')
+      form(name="ControlInput", action="/debug?clearWaitState=true", method="post")
+          div(data-role='fieldcontain')   
+          input(type='submit',value='ClearWait:',data-transition='fade', data-theme='c')
+      textarea(id="WAITSTATE", name="WAITSTATE", rows=1, cols=44)
+          | unknown
     h1 Ultrasonic Sensors
     div
         textarea(id="UltrasonicFront", name="UltrasonicFront", rows=1)

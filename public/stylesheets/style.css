@@ -123,7 +123,7 @@ header {
   text-shadow: 0px -1px 0px #0101d1;
 }
 .container {
-  width: 900px;
+  width: 1000px;
   margin: 50px auto;
   overflow: hidden;
 }
@@ -136,7 +136,7 @@ header {
 }
 .sidebar {
   float: right;
-  width: 500px;
+  width: 400px;
 }
 .sidebar .widget {
 /*
@@ -166,12 +166,7 @@ header {
   padding: 0px 10px;
   margin-bottom: 10px;
 }
-.sidebar .widget .mcontrolRight {
-  float: right;
-  width: 100px;
-  margin-left: 100px;
-}
-.sidebar .widget .mcontrolLeft {
+.sidebar .widget .mcontrol {
   float: left;
   width: 100px;
   margin-right: 100px;

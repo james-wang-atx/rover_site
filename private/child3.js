@@ -170,18 +170,9 @@ var STD_FWD_TIMEMS = 500;
 var STD_BCK_DUTY   = 0.4;
 var STD_BCK_TIMEMS = 500;
 
-// TEMP DEBUG:
-var testcount = 2;
-
 // [random_turn_0_to_90]
 function stateFunction_random_turn_0_to_90_entry( smArgObj ) {
-    console.log('stateFunction_random_turn_0_to_90_entry: testcount = ' + testcount + ', smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
-
-    if( testcount-- <= 0 ) {
-        NextStateMachineEvent    = 'error';
-        NextStateMachineEventArg = null;
-        return;
-    }
+    console.log('stateFunction_random_turn_0_to_90_entry: smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
 
     var rnd1 = Math.random();
     var rnd2 = Math.random();
@@ -630,12 +621,6 @@ function stateFunction_start_escape_exit( smArgObj ) {
 function stateFunction_escape_turn_0_to_90_entry( smArgObj ) {
     console.log('stateFunction_escape_turn_0_to_90_entry... smArgObj=' + JSON.stringify(smArgObj) + '(current rssi)');
 
-    if( testcount-- <= 0 ) {
-        NextStateMachineEvent    = 'error';
-        NextStateMachineEventArg = null;
-        return;
-    }
-
     if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
         NextStateMachineEvent = 'error';
         NextStateMachineEventArg = null;
@@ -770,18 +755,235 @@ var debug_dock_counter = 0;
 function stateFunction_random_walk_done_entry( smArgObj ) {
     console.log('stateFunction_random_walk_done_entry... smArgObj=' + JSON.stringify(smArgObj));
 
-    // TODO: final docking procedure
-    if( debug_dock_counter++ < 10 ) {
-        NextStateMachineEvent    = 'dock_and_charge'; //spin here
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
         NextStateMachineEventArg = null;
-    } else {
-        NextStateMachineEvent    = 'charge_done';
-        NextStateMachineEventArg = null;
-        debug_dock_counter = 0
+        return;
     }
+
+    NextStateMachineEvent    = 'look_for_barcode';
+    NextStateMachineEventArg = null;
 }
 function stateFunction_random_walk_done_exit( smArgObj ) {
     //console.log('stateFunction_random_walk_done_exit... smArgObj=' + JSON.stringify(smArgObj));
+    reset_turn_90_substate_count();
+}
+
+    // TODO: final docking procedure
+    // do 180 degree turn and scan with barcode utility
+    // if we find the barcode, move forward slowly until match_count > 2
+    // use pre-tested start_stop_width for certain match_count to judge distance
+    // also check x position to see if barcode is centered
+    // when barcode size if max, we've docked?
+
+// [scan_for_barcode]
+function stateFunction_scan_for_barcode_entry( smArgObj ) {
+    console.log('stateFunction_scan_for_barcode_entry... smArgObj=' + JSON.stringify(smArgObj));
+    
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+
+    prepareForBarcodeCB( smArgObj );
+
+    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", processBarcodeResult);
+}
+function stateFunction_scan_for_barcode_exit( smArgObj ) {
+    //console.log('stateFunction_scan_for_barcode_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [barcode_turn]
+function stateFunction_barcode_turn_entry( smArgObj ) {
+    console.log('stateFunction_barcode_turn_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+
+    // turn 90 degrees right, then left in 11.5 degrees slices and recheck
+
+    var substatecount = get_and_incr_turn_90_repeat_count();
+    console.log('stateFunction_barcode_turn_entry: substatecount = ' + substatecount );
+
+    var timeMs = 0;
+
+    if( substatecount === 1 ) {
+        // right 90 degrees
+        timeMs = RIGHT_TURN_360_TIME_MS/4;
+        console.log('stateFunction_barcode_turn_entry: right:[90] ' + timeMs);
+        motor.turnright(RIGHT_TURN_DUTY, timeMs);
+
+        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, false);
+    } else {
+        if( substatecount < 17 ) {
+            // turn left 11.5 degress
+            timeMs = LEFT_TURN_360_TIME_MS/32;
+            console.log('stateFunction_barcode_turn_entry: left:[11.5] ' + timeMs);
+            motor.turnleft(LEFT_TURN_DUTY, timeMs);
+
+            setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, false);
+        } else {
+            // we've exhausted the 180 degree field we were facing, the barcode should not be behind us, in the original orientation
+            NextStateMachineEvent = 'error';
+            NextStateMachineEventArg = null;
+        }
+    }
+}
+function stateFunction_barcode_turn_exit( smArgObj ) {
+    //console.log('stateFunction_barcode_turn_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [barcode_center]
+function stateFunction_barcode_center_entry( smArgObj ) {
+    console.log('stateFunction_barcode_center_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+
+    if ( typeof smArgObj_barcode.barcode_result  === 'undefined' || smArgObj_barcode.barcode_result === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+    
+    // From smArgObj_barcode.barcode_result.unit_width value, we can compute the total barcode pixel-width:
+    //      total barcode pixel-width = unit_width * ( 11 + 12*7 ) = unit_width * 95
+
+    // From smArgObj_barcode.barcode_result.start.x, we know where the barcode starts (0-based) in the 640 pixel-wide view.
+    //      
+
+    var barcode_pixel_width = smArgObj_barcode.barcode_result.unit_width * 95;
+    var left_margin = mArgObj_barcode.barcode_result.start.x + 1;
+    var right_margin = 640 - barcode_pixel_width - left_margin;
+
+    var misalignment = left_margin - right_margin;
+
+    console.log('stateFunction_barcode_center_entry: left=' + left_margin + ', barcode_width=' + barcode_pixel_width + ', right=' + right_margin + ', misalign=' + misalignment );
+
+    var timeMs = 0;
+
+    if( misalignment > 2 ) {
+        // right of center by more than 2 pixels (rotate slightly left)
+
+        timeMs = LEFT_TURN_360_TIME_MS/32;
+        console.log('stateFunction_barcode_center_entry: left:[11.5] ' + timeMs);
+        motor.turnleft(LEFT_TURN_DUTY, timeMs);
+
+        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
+    } else if( misalignment < -2) {
+        // left of center by more than 2 pixels (rotate slightly right)
+    
+        timeMs = RIGHT_TURN_360_TIME_MS/32;
+        console.log('stateFunction_barcode_center_entry: right:[11.5] ' + timeMs);
+        motor.turnright(LEFT_TURN_DUTY, timeMs);
+
+        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
+    } else {
+        // close enough, keep going straight
+        NextStateMachineEvent = 'center_done';
+        NextStateMachineEventArg = smArgObj;    
+    }
+}
+function stateFunction_barcode_center_exit( smArgObj ) {
+    //console.log('stateFunction_barcode_center_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [barcode_forward]
+function stateFunction_barcode_forward_entry( smArgObj ) {
+    console.log('stateFunction_barcode_forward_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+    motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS/10);
+    // for now, no extra delay to let uss settle, since we're going to linger poll to let rssi settle
+    setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'barcode_forward_done', smArgObj);
+}
+function stateFunction_barcode_forward_exit( smArgObj ) {
+    //console.log('stateFunction_barcode_forward_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [recheck_barcode]
+function stateFunction_recheck_barcode_entry( smArgObj ) {
+    console.log('stateFunction_recheck_barcode_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+
+    prepareForBarcodeCB( smArgObj );
+
+    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", processBarcodeResult);
+}
+function stateFunction_recheck_barcode_exit( smArgObj ) {
+    //console.log('stateFunction_recheck_barcode_exit... smArgObj=' + JSON.stringify(smArgObj));
+    reset_turn_90_substate_count();
+}
+
+// [check_barcode_progress]
+function stateFunction_check_barcode_progress_entry( smArgObj ) {
+    console.log('stateFunction_check_barcode_progress_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+
+    if ( typeof smArgObj.barcode_result === 'undefined' || smArgObj.barcode_result === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+
+    if ( typeof smArgObj.barcode_prev_result !== 'undefined' && smArgObj.barcode_prev_result !== null ) {
+        var barcode_pixel_width = smArgObj.barcode_result.unit_width * 95;
+        var barcode_pixel_width_previous = smArgObj.barcode_prev_result.unit_width * 95;
+    
+        if( smArgObj.barcode_result.match_count == 12 || smArgObj.barcode_result.start_stop_width > 300 ) {
+            NextStateMachineEvent = 'barcode_largest';
+            NextStateMachineEventArg = smArgObj;    
+        } else {
+            // TBD: for now, go fwd
+            NextStateMachineEvent = 'barcode_progressing';
+            NextStateMachineEventArg = smArgObj;    
+        }
+    } else {
+        NextStateMachineEvent = 'barcode_progressing';
+        NextStateMachineEventArg = smArgObj;        
+    }
+}
+function stateFunction_check_barcode_progress_exit( smArgObj ) {
+    //console.log('stateFunction_check_barcode_progress_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [verify_dock]
+function stateFunction_verify_dock_entry( smArgObj ) {
+    console.log('stateFunction_verify_dock_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+    if ( typeof smArgObj  === 'undefined' || smArgObj === null ) {
+        NextStateMachineEvent = 'error';
+        NextStateMachineEventArg = null;
+        return;
+    }
+
+    // spin here
+    NextStateMachineEvent = 'still_charging';
+    NextStateMachineEventArg = smArgObj;        
+}
+function stateFunction_verify_dock_exit( smArgObj ) {
+    //console.log('stateFunction_verify_dock_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
 ////////////////////////////////////
@@ -798,7 +1000,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_idle_entry,
             'exit': stateFunction_idle_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'connect',
@@ -809,7 +1013,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_connect_entry,
             'exit': stateFunction_connect_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'disconnect',
@@ -820,7 +1026,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_disconnect_entry,
             'exit': stateFunction_disconnect_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'get_temperature',
@@ -832,7 +1040,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_get_temperature_entry,
             'exit': stateFunction_get_temperature_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'poll_rssi',
@@ -846,7 +1056,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_poll_rssi_entry,
             'exit': stateFunction_poll_rssi_exit
-        }
+        },
+        "debug_wait": true,
+        "debug_waiting": false
     },
     {
         'name':'random_turn_0_to_90',
@@ -858,7 +1070,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_random_turn_0_to_90_entry,
             'exit': stateFunction_random_turn_0_to_90_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'forward',
@@ -869,7 +1083,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_forward_entry,
             'exit': stateFunction_forward_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'poll_check_and_track_rssi',
@@ -884,7 +1100,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_poll_check_and_track_rssi_entry,
             'exit': stateFunction_poll_check_and_track_rssi_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'check_uss',
@@ -896,7 +1114,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_check_uss_entry,
             'exit': stateFunction_check_uss_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'turn_180',
@@ -906,7 +1126,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_turn_180_entry,
             'exit': stateFunction_turn_180_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'turn_90',
@@ -920,7 +1142,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_turn_90_entry,
             'exit': stateFunction_turn_90_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'scan_turn_90',
@@ -933,7 +1157,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_scan_turn_90_entry,
             'exit': stateFunction_scan_turn_90_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'start_escape',
@@ -943,7 +1169,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_start_escape_entry,
             'exit': stateFunction_start_escape_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         // same as random_turn_0_to_90, but we no longer care about rssi, just escaping blockage to establish new rssi to beat
@@ -956,7 +1184,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_escape_turn_0_to_90_entry,
             'exit': stateFunction_escape_turn_0_to_90_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'escape_forward',
@@ -968,7 +1198,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_forward_entry,
             'exit': stateFunction_forward_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'escape_check_uss',
@@ -980,7 +1212,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_escape_check_uss_entry,
             'exit': stateFunction_escape_check_uss_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'escape_turn_180',
@@ -990,7 +1224,9 @@ states = [
         'state_functions' : {
             'entry': stateFunction_escape_turn_180_entry,
             'exit': stateFunction_escape_turn_180_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'poll_rssi_restart_walk',
@@ -1001,18 +1237,123 @@ states = [
         'state_functions' : {
             'entry': stateFunction_poll_rssi_restart_walk_entry,
             'exit': stateFunction_poll_rssi_restart_walk_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     },
     {
         'name':'random_walk_done',
         'events': {
-            'charge_done': 'poll_rssi',
-            'dock_and_charge': 'random_walk_done'
+            'error': 'poll_rssi',
+            'look_for_barcode': 'scan_for_barcode'
         },
         'state_functions' : {
             'entry': stateFunction_random_walk_done_entry,
             'exit': stateFunction_random_walk_done_exit
-        }
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'scan_for_barcode',
+        'events': {
+            'error': 'poll_rssi',
+            'no_barcode': 'barcode_turn',
+            'found_barcode': 'barcode_center'
+        },
+        'state_functions' : {
+            'entry': stateFunction_scan_for_barcode_entry,
+            'exit': stateFunction_scan_for_barcode_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'barcode_turn',
+        'events': {
+            'error': 'poll_rssi',
+            'turn_done': 'scan_for_barcode',
+            'obstacle': 'scan_for_barcode',         // since we may be near dock, it will reflect as obstacle, just barcode to decide to go fwd
+            'no_obstacle': 'scan_for_barcode'       // since we may be near dock, it will reflect as obstacle, just barcode to decide to go fwd
+        },
+        'state_functions' : {
+            'entry': stateFunction_barcode_turn_entry,
+            'exit': stateFunction_barcode_turn_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'barcode_center',
+        'events': {
+            'error': 'poll_rssi',
+            'center_done': 'barcode_forward',
+            'obstacle': 'barcode_forward',          // obstacle expected heading toward dock
+            'no_obstacle': 'barcode_forward'
+        },
+        'state_functions' : {
+            'entry': stateFunction_barcode_center_entry,
+            'exit': stateFunction_barcode_center_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'barcode_forward',
+        'events': {
+            'error': 'poll_rssi',
+            'barcode_forward_done': 'recheck_barcode'
+        },
+        'state_functions' : {
+            'entry': stateFunction_barcode_forward_entry,
+            'exit': stateFunction_barcode_forward_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'recheck_barcode',
+        'events': {
+            'error': 'poll_rssi',
+            'no_barcode': 'poll_rssi',                  //ERROR! stop for now
+            'found_barcode': 'check_barcode_progress'
+        },
+        'state_functions' : {
+            'entry': stateFunction_recheck_barcode_entry,
+            'exit': stateFunction_recheck_barcode_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'check_barcode_progress',
+        'events': {
+            'error': 'poll_rssi',
+            'barcode_progressing': 'barcode_forward',
+            'barcode_smaller': 'scan_for_barcode',
+            'barcode_largest': 'verify_dock',
+        },
+        'state_functions' : {
+            'entry': stateFunction_check_barcode_progress_entry,
+            'exit': stateFunction_check_barcode_progress_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'verify_dock',
+        'events': {
+            'error': 'poll_rssi',
+            'still_charging': 'verify_dock',
+            'charge_done': 'poll_rssi',
+            'bad_dock': 'verify_dock'           //?????????????
+        },
+        'state_functions' : {
+            'entry': stateFunction_verify_dock_entry,
+            'exit': stateFunction_verify_dock_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
     }
 ];
 
@@ -1045,8 +1386,14 @@ function StateMachine( statesArray ) {
 
 		if( this.currentState.events[ SMEName ] ) {
             var nextStateName = this.currentState.events[ SMEName ];
+            var prevStateName = this.currentState.name;
+
+            // NOTE: currently we do allow a block(waiting) state to be transitioned away from,
+            //       if a state event happens (though this should not happen with current design)
 
             if( this.currentState.state_functions['exit'] !== 'undefined' ) {
+                // clear its waiting flag, in case it was waiting
+                this.currentState.debug_waiting = false;
                 // call the current state's exit function
                 this.currentState.state_functions['exit']( smArgObj );
             }
@@ -1054,14 +1401,32 @@ function StateMachine( statesArray ) {
             // move to next state
 			this.currentState = this.states[ this.stateNameToIndex[ nextStateName ] ] ;
 
-            if( this.currentState.state_functions['entry'] !== 'undefined' ) {
-                // call the new state's entry function
-                this.currentState.state_functions['entry']( smArgObj );
+            if( this.currentState.debug_wait === true ) {
+                // defer transition into this state until we get a message from the parent
+                this.currentState.debug_waiting = true;
+                this.currentState.debug_waiting_smArgObj = smArgObj;
+                // notify parent of waiting state
+                process.send({ state_wait: nextStateName, previous_state: prevStateName });
+            } else {
+                if( this.currentState.state_functions['entry'] !== 'undefined' ) {
+                    // call the new state's entry function
+                    this.currentState.state_functions['entry']( smArgObj );
+                }
             }
 		} else {
             console.log('notifyEvent: Current: ' + this.currentState.name + ', IGNORING event: ' + SMEName );
         }
 	}
+
+    this.clearWaitingStateAndGo = function() {
+        if( this.currentState.debug_waiting === true ) {
+            this.currentState.debug_waiting = false;
+            if( this.currentState.state_functions['entry'] !== 'undefined' ) {
+                // call the new state's entry function
+                this.currentState.state_functions['entry']( this.currentState.debug_waiting_smArgObj );
+            }
+        }
+    }
 
 	this.getStatus = function(){
 		return this.currentState.name;
@@ -1078,6 +1443,8 @@ sm = new StateMachine(states);
 // Timer-based strobe for the State Machine //
 //////////////////////////////////////////////
 
+var clearWaitingState = false;
+
 function smStrobe() {
 
     // inject external event into the state machine
@@ -1090,7 +1457,14 @@ function smStrobe() {
     if( NextStateMachineEvent !== null ) {
         // setting 2nd smArgObj to true to clear the event (prevent doing it again)
         sm.notifyEvent(NextStateMachineEvent, true, NextStateMachineEventArg);
+    } else if( clearWaitingState === true ) {
+        clearWaitingState = false;
+        sm.clearWaitingStateAndGo();
     }
+}
+
+function signalClearWaitingState() {
+    clearWaitingState = true;
 }
 
 function startTimer() {
@@ -1130,14 +1504,14 @@ process.on('message', function (m) {
                                  rssiPathArray: [] };
                 CommandGeneratedEvent = 'rnd_walk';
                 CommandGeneratedEventArg = smArgObj;
-
-                testcount = 1; // re-arm test code
             } else {
                 console.log('cannot start random walk, due to not having initial rssi');
             }
         } else if( m.command === 'reset_rssiHL' ) {
             // TEST (this message is sent by parent when it activates motor controls based on web client page activity):
             Reset_rssiHL();
+        } else if( m.command === 'end_wait' ) {
+            signalClearWaitingState();
         }
     }
 });
@@ -1215,6 +1589,8 @@ function TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events(smArgObj, boolUseR
 function CheckUSSCB_SetSMEvent_Rnd(distanceFloat, smArgObj) {
     if( distanceFloat > 9.0 ) {
         console.log('CheckUSSCB_SetSMEvent_Rnd: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + ' _____ CLEAR _____');
+        
+        smArgObj.obstacle        = false;
 
         var rnd = Math.random();
         if( rnd > 0.9 ) {
@@ -1225,6 +1601,7 @@ function CheckUSSCB_SetSMEvent_Rnd(distanceFloat, smArgObj) {
         NextStateMachineEventArg = smArgObj; //forward the previous rssi        
     } else {
         console.log('CheckUSSCB_SetSMEvent_Rnd: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + '#_#_#_#_# BLOCKED #_#_#_#_#');
+        smArgObj.obstacle        = true;
         NextStateMachineEvent    = 'obstacle';
         NextStateMachineEventArg = smArgObj; //pass along rssi to self
     }
@@ -1233,10 +1610,12 @@ function CheckUSSCB_SetSMEvent_Rnd(distanceFloat, smArgObj) {
 function CheckUSSCB_SetSMEvent(distanceFloat, smArgObj) {
     if( distanceFloat > 9.0 ) {
         console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + ' _____ CLEAR _____');
+        smArgObj.obstacle        = false;
         NextStateMachineEvent    = 'no_obstacle';
         NextStateMachineEventArg = smArgObj; //forward the previous rssi        
     } else {
         console.log('CheckUSSCB_SetSMEvent: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + '#_#_#_#_# BLOCKED #_#_#_#_#');
+        smArgObj.obstacle        = true;
         NextStateMachineEvent    = 'obstacle';
         NextStateMachineEventArg = smArgObj; //pass along rssi to self
     }
@@ -1510,4 +1889,53 @@ function reset_turn_90_substate_count() {
 
 function get_and_incr_turn_90_repeat_count() {
     return ++turn_90_substate_count;
+}
+
+///////////////////////////////////////////////////
+
+var smArgObj_barcode = null;
+
+function prepareForBarcodeCB( smArgObj ) {
+    smArgObj_barcode = smArgObj;
+}
+
+function processBarcodeResult(error, stdout, stderr) {
+    var errorDetected = true;
+
+    if (typeof stdout !== 'undefined' && stdout !== null) {
+        try {
+            var barcode_result = JSON.parse(stdout);
+
+            // keep running tally of current barcode detection result and previous result
+
+            if (typeof smArgObj_barcode.barcode_result !== 'undefined' ) {
+                smArgObj_barcode.barcode_prev_result = smArgObj_barcode.barcode_result;
+            } else {
+                smArgObj_barcode.barcode_prev_result = null;
+            }
+
+            smArgObj_barcode.barcode_result = barcode_result;
+
+            if (barcode_result.match_count > 0) {
+                console.log('processBarcodeResult:BARCODE-RESULT: match_count = ' + barcode_result.match_count);
+                //console.log('BARCODE RESULT: ' + JSON.stringify(barcode_result));
+
+                NextStateMachineEvent    = 'found_barcode';
+                NextStateMachineEventArg = smArgObj_barcode;
+            } else {
+                NextStateMachineEvent    = 'no_barcode';
+                NextStateMachineEventArg = smArgObj_barcode;
+            }
+
+            errorDetected = false;
+        }
+        catch (err) {
+            console.log('BARCODE RESULT PARSE ERROR: error = ' + error + ', stdout = ' + stdout);
+        }
+    }
+
+    // try it again, if error
+    if( errorDetected === true ) {
+        exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", processBarcodeResult);
+    }
 }

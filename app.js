@@ -227,6 +227,34 @@ app.get('/barcode', function (req, res) {
     }
 })
 
+var waitingStateMessage = {};
+
+app.post('/debug*', function (req, res) {
+    console.log('POST req.url=' + req.url);
+    //console.log(req.body);
+
+    if (req.url == "/debug?clearWaitState=true") {
+        n.send({ command: 'end_wait' });
+    }
+
+    res.writeHead(204);
+    res.end();
+})
+
+app.get('/debug', function (req, res) {
+    if (req.url == "/debug?getWaitState=true") {
+        res.set({
+            'Content-Type': 'application/json'
+        });
+        res.writeHead(200);
+        res.write( JSON.stringify( waitingStateMessage ) );
+        res.end();
+    } else {
+        res.writeHead(204);
+        res.end();
+    }
+})
+
 // 'sh' == LOCK_SH == Shared lock (for reading)
 // 'ex' == LOCK_EX == Exclusive lock (for writing)
 // 'nb' == LOCK_NB == Non-blocking request
@@ -403,6 +431,8 @@ n.on('message', function (m) {
             outstanding_response.write('' + parseFloat(temperature.object).toFixed(3) + ', ' + parseFloat(temperature.ambient).toFixed(3));
             outstanding_response.end();
         }
+    } else if (typeof m.state_wait !== 'undefined') {
+        waitingStateMessage = m;
     }
 });
 

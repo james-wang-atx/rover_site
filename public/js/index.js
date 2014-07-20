@@ -17,6 +17,7 @@ function displayImage() {
   LoadTextAreaFromUrl("/uss/front", document.getElementById("UltrasonicFront"));
   LoadTextAreaFromUrl("/uss/rear", document.getElementById("UltrasonicRear"));
   LoadTextAreaFromUrl("/bt/rssi", document.getElementById("RSSI"));
+  LoadTextAreaFromUrl("/debug?getWaitState=true", document.getElementById("WAITSTATE"));
 
   // every 3rd time (3 seconds), do the barcode check
   if ((counter & 3) == 0) {
