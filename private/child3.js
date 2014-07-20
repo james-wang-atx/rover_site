@@ -853,13 +853,19 @@ function stateFunction_barcode_center_entry( smArgObj ) {
         return;
     }
     
-    // From smArgObj_barcode.barcode_result.unit_width value, we can compute the total barcode pixel-width:
-    //      total barcode pixel-width = unit_width * ( 11 + 12*7 ) = unit_width * 95
+    // From smArgObj_barcode.barcode_result.unit_width value, we can compute the total barcode pixel-width,
+    //   for normal 12-digit UPC barcode as follows:
+    //       total barcode pixel-width = unit_width * ( 11 + 12*7 ) = unit_width * 95
+    //
+    // HOWEVER, due to distance reading requirements, I decided to "blow up" a large image containing just
+    //   the lguard (bar-space-bar) + 7 bits of the 1st digit ONLY, resulting in
+    //       total barcode pixel-width = unit_width * ( 3 + 1*7 ) = unit_width * 10
+    //     
 
     // From smArgObj_barcode.barcode_result.start.x, we know where the barcode starts (0-based) in the 640 pixel-wide view.
     //      
 
-    var barcode_pixel_width = smArgObj_barcode.barcode_result.unit_width * 95;
+    var barcode_pixel_width = smArgObj_barcode.barcode_result.unit_width * 10;
     var left_margin = mArgObj_barcode.barcode_result.start.x + 1;
     var right_margin = 640 - barcode_pixel_width - left_margin;
 
@@ -948,10 +954,13 @@ function stateFunction_check_barcode_progress_entry( smArgObj ) {
     }
 
     if ( typeof smArgObj.barcode_prev_result !== 'undefined' && smArgObj.barcode_prev_result !== null ) {
-        var barcode_pixel_width = smArgObj.barcode_result.unit_width * 95;
-        var barcode_pixel_width_previous = smArgObj.barcode_prev_result.unit_width * 95;
+        var barcode_pixel_width = smArgObj.barcode_result.unit_width * 10;
+        var barcode_pixel_width_previous = smArgObj.barcode_prev_result.unit_width * 10;
     
-        if( smArgObj.barcode_result.match_count == 12 || smArgObj.barcode_result.start_stop_width > 300 ) {
+        if( smArgObj.barcode_result.unit_width >= 40 || smArgObj.barcode_result.start_stop_width > 400 ) {
+            //old: { "digits":734343525257, "match_count":12, "start":{ "x":32, "y":74 }, "stop":{ "x":565, "y":74 }, "unit_width":5, "start_stop_width":533 }
+            //current: { "digits":7, "match_count":1, "start":{ "x":106, "y":191 }, "stop":{ "x":525, "y":191 }, "unit_width":41, "start_stop_width":419 }
+
             NextStateMachineEvent = 'barcode_largest';
             NextStateMachineEventArg = smArgObj;    
         } else {
@@ -1057,7 +1066,7 @@ states = [
             'entry': stateFunction_poll_rssi_entry,
             'exit': stateFunction_poll_rssi_exit
         },
-        "debug_wait": true,
+        "debug_wait": false,
         "debug_waiting": false
     },
     {
@@ -1308,14 +1317,14 @@ states = [
             'entry': stateFunction_barcode_forward_entry,
             'exit': stateFunction_barcode_forward_exit
         },
-        "debug_wait": false,
+        "debug_wait": true,
         "debug_waiting": false
     },
     {
         'name':'recheck_barcode',
         'events': {
             'error': 'poll_rssi',
-            'no_barcode': 'poll_rssi',                  //ERROR! stop for now
+            'no_barcode': 'poll_rssi',                  //ERROR! stop for now, couild 'barcode_forward'
             'found_barcode': 'check_barcode_progress'
         },
         'state_functions' : {
@@ -1329,8 +1338,7 @@ states = [
         'name':'check_barcode_progress',
         'events': {
             'error': 'poll_rssi',
-            'barcode_progressing': 'barcode_forward',
-            'barcode_smaller': 'scan_for_barcode',
+            'barcode_progressing': 'barcode_center',
             'barcode_largest': 'verify_dock',
         },
         'state_functions' : {
