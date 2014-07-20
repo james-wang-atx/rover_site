@@ -96,11 +96,17 @@ block sidebar
       form(name="ControlInput", action="/control?RWK=ON", method="post")
           div(data-role='fieldcontain')   
             input(type='submit',value='RWK',data-transition='fade', data-theme='c')
-      form(name="ControlInput", action="/debug?clearWaitState=true", method="post")
+      form(name="ControlInput", action="/debug?clearWaitState=true", method="post", style="float:left")
           div(data-role='fieldcontain')   
           input(type='submit',value='ClearWait:',data-transition='fade', data-theme='c')
-      textarea(id="WAITSTATE", name="WAITSTATE", rows=1, cols=44)
+      textarea(id="WAITSTATE", name="WAITSTATE", rows=1, cols=33)
           | unknown
+      p( style="float:none")
+      div
+        form(id="waitstates", action="/debug?disableAllWaits=true", method="post", style="float:left")
+            button(name="disableAllWaits" type="submit" value="true" method="post") DISABLE Waits
+        form(id="waitstates", action="/debug?disableAllWaits=false", method="post")
+            button(name="disableAllWaits" type="submit" value="false" method="post") ENABLE Waits
     h1 Ultrasonic Sensors
     div
         textarea(id="UltrasonicFront", name="UltrasonicFront", rows=1)

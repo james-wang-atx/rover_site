@@ -1358,6 +1358,12 @@ states = [
 ];
 
 ///////////////////////////////////////
+// Global wait state control         //
+///////////////////////////////////////
+
+var GlobalIgnoreWaitStates = false;
+
+///////////////////////////////////////
 // State Machine constructor         //
 ///////////////////////////////////////
 
@@ -1401,7 +1407,7 @@ function StateMachine( statesArray ) {
             // move to next state
 			this.currentState = this.states[ this.stateNameToIndex[ nextStateName ] ] ;
 
-            if( this.currentState.debug_wait === true ) {
+            if( GlobalIgnoreWaitStates === false && this.currentState.debug_wait === true ) {
                 // defer transition into this state until we get a message from the parent
                 this.currentState.debug_waiting = true;
                 this.currentState.debug_waiting_smArgObj = smArgObj;
@@ -1512,6 +1518,10 @@ process.on('message', function (m) {
             Reset_rssiHL();
         } else if( m.command === 'end_wait' ) {
             signalClearWaitingState();
+        } else if( m.command === 'disable_waits' ) {
+            GlobalIgnoreWaitStates = true;
+        } else if( m.command === 'enable_waits' ) {
+            GlobalIgnoreWaitStates = false;
         }
     }
 });

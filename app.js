@@ -235,6 +235,10 @@ app.post('/debug*', function (req, res) {
 
     if (req.url == "/debug?clearWaitState=true") {
         n.send({ command: 'end_wait' });
+    } else if (req.url == "/debug?disableAllWaits=true") {
+        n.send({ command: 'disable_waits' });
+    } else if (req.url == "/debug?disableAllWaits=false") {
+        n.send({ command: 'enable_waits' });
     }
 
     res.writeHead(204);
