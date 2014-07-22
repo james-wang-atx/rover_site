@@ -788,7 +788,7 @@ function stateFunction_scan_for_barcode_entry( smArgObj ) {
 
     prepareForBarcodeCB( smArgObj );
 
-    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", processBarcodeResult);
+    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png -digits 1", processBarcodeResult);
 }
 function stateFunction_scan_for_barcode_exit( smArgObj ) {
     //console.log('stateFunction_scan_for_barcode_exit... smArgObj=' + JSON.stringify(smArgObj));
@@ -930,7 +930,7 @@ function stateFunction_recheck_barcode_entry( smArgObj ) {
 
     prepareForBarcodeCB( smArgObj );
 
-    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", processBarcodeResult);
+    exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png -digits 1", processBarcodeResult);
 }
 function stateFunction_recheck_barcode_exit( smArgObj ) {
     //console.log('stateFunction_recheck_barcode_exit... smArgObj=' + JSON.stringify(smArgObj));
@@ -953,14 +953,19 @@ function stateFunction_check_barcode_progress_entry( smArgObj ) {
         return;
     }
 
+    // we should only get to this state on 'found_barcode' event, which is based on 'match_count', so there should be no need
+    //   to check that we actually matched something here...
+
     if ( typeof smArgObj.barcode_prev_result !== 'undefined' && smArgObj.barcode_prev_result !== null ) {
         var barcode_pixel_width = smArgObj.barcode_result.unit_width * 10;
         var barcode_pixel_width_previous = smArgObj.barcode_prev_result.unit_width * 10;
     
-        if( smArgObj.barcode_result.unit_width >= 40 || smArgObj.barcode_result.start_stop_width > 400 ) {
-            //old: { "digits":734343525257, "match_count":12, "start":{ "x":32, "y":74 }, "stop":{ "x":565, "y":74 }, "unit_width":5, "start_stop_width":533 }
-            //current: { "digits":7, "match_count":1, "start":{ "x":106, "y":191 }, "stop":{ "x":525, "y":191 }, "unit_width":41, "start_stop_width":419 }
+        //old: { "digits":734343525257, "match_count":12, "start":{ "x":32, "y":74 }, "stop":{ "x":565, "y":74 }, "unit_width":5, "start_stop_width":533 }
 
+        //{ "digits":7, "match_count":1, "start":{ "x":236, "y":251 }, "stop":{ "x":376, "y":251 }, "unit_width":14, "start_stop_width":140 }
+        //{ "digits":7, "match_count":1, "start":{ "x":160, "y":181 }, "stop":{ "x":468, "y":181 }, "unit_width":31, "start_stop_width":308 }
+
+        if( smArgObj.barcode_result.near_code === true && ( smArgObj.barcode_result.unit_width > 30 || smArgObj.barcode_result.start_stop_width > 300 ) ) {
             NextStateMachineEvent = 'barcode_largest';
             NextStateMachineEventArg = smArgObj;    
         } else {
@@ -969,6 +974,7 @@ function stateFunction_check_barcode_progress_entry( smArgObj ) {
             NextStateMachineEventArg = smArgObj;    
         }
     } else {
+        // 1st time through, there is no previous barcode result value
         NextStateMachineEvent = 'barcode_progressing';
         NextStateMachineEventArg = smArgObj;        
     }
@@ -1954,6 +1960,6 @@ function processBarcodeResult(error, stdout, stderr) {
 
     // try it again, if error
     if( errorDetected === true ) {
-        exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", processBarcodeResult);
+        exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png -digits 1", processBarcodeResult);
     }
 }

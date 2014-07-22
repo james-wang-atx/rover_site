@@ -223,7 +223,7 @@ function sendbarcode(error, stdout, stderr) {
 app.get('/barcode', function (req, res) {
     cmd_res_s.push(res);
     if (cmd_res_s.length == 1) {
-        exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png", sendbarcode);
+        exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png -digits 1", sendbarcode);
     }
 })
 
