@@ -187,6 +187,9 @@ app.post('/control*', function (req, res) {
     } else if (req.url == "/control?RWK=ON") {
         n.send({ command: 'random_walk' });
         //TODO: need to disable basic motor commands during RWALK?
+    } else if (req.url == "/control?TEST_BARCODE=ON") {
+        n.send({ command: 'test_barcode' });
+        //TODO: need to disable basic motor commands during BARCODE/DOCK TEST?
     }
 
     res.writeHead(204);

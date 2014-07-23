@@ -817,7 +817,8 @@ function stateFunction_barcode_turn_entry( smArgObj ) {
         console.log('stateFunction_barcode_turn_entry: right:[90] ' + timeMs);
         motor.turnright(RIGHT_TURN_DUTY, timeMs);
 
-        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, false);
+        //setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, false);
+        setTimeout(Delay_StateTransition_Timer, timeMs, 'turn_done', smArgObj );
     } else {
         if( substatecount < 17 ) {
             // turn left 11.5 degress
@@ -825,7 +826,8 @@ function stateFunction_barcode_turn_entry( smArgObj ) {
             console.log('stateFunction_barcode_turn_entry: left:[11.5] ' + timeMs);
             motor.turnleft(LEFT_TURN_DUTY, timeMs);
 
-            setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, false);
+            //setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, false);
+            setTimeout(Delay_StateTransition_Timer, timeMs, 'turn_done', smArgObj );
         } else {
             // we've exhausted the 180 degree field we were facing, the barcode should not be behind us, in the original orientation
             NextStateMachineEvent = 'error';
@@ -857,7 +859,7 @@ function stateFunction_barcode_center_entry( smArgObj ) {
     //   for normal 12-digit UPC barcode as follows:
     //       total barcode pixel-width = unit_width * ( 11 + 12*7 ) = unit_width * 95
     //
-    // HOWEVER, due to distance reading requirements, I decided to "blow up" a large image containing just
+    // HOWEVER, due to distance reading requirements, I decided to "blow up" a large "SINGLE-DIGIT" image containing just
     //   the lguard (bar-space-bar) + 7 bits of the 1st digit ONLY, resulting in
     //       total barcode pixel-width = unit_width * ( 3 + 1*7 ) = unit_width * 10
     //     
@@ -866,10 +868,9 @@ function stateFunction_barcode_center_entry( smArgObj ) {
     //      
 
     var barcode_pixel_width = smArgObj_barcode.barcode_result.unit_width * 10;
-    var left_margin = mArgObj_barcode.barcode_result.start.x + 1;
-    var right_margin = 640 - barcode_pixel_width - left_margin;
-
-    var misalignment = left_margin - right_margin;
+    var left_margin         = mArgObj_barcode.barcode_result.start.x + 1;
+    var right_margin        = 640 - barcode_pixel_width - left_margin;
+    var misalignment        = left_margin - right_margin;
 
     console.log('stateFunction_barcode_center_entry: left=' + left_margin + ', barcode_width=' + barcode_pixel_width + ', right=' + right_margin + ', misalign=' + misalignment );
 
@@ -882,7 +883,8 @@ function stateFunction_barcode_center_entry( smArgObj ) {
         console.log('stateFunction_barcode_center_entry: left:[11.5] ' + timeMs);
         motor.turnleft(LEFT_TURN_DUTY, timeMs);
 
-        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
+        //setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
+        setTimeout(Delay_StateTransition_Timer, timeMs, 'center_done', smArgObj );
     } else if( misalignment < -2) {
         // left of center by more than 2 pixels (rotate slightly right)
     
@@ -890,7 +892,8 @@ function stateFunction_barcode_center_entry( smArgObj ) {
         console.log('stateFunction_barcode_center_entry: right:[11.5] ' + timeMs);
         motor.turnright(LEFT_TURN_DUTY, timeMs);
 
-        setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
+        //setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
+        setTimeout(Delay_StateTransition_Timer, timeMs, 'center_done', smArgObj );
     } else {
         // close enough, keep going straight
         NextStateMachineEvent = 'center_done';
@@ -911,7 +914,6 @@ function stateFunction_barcode_forward_entry( smArgObj ) {
         return;
     }
     motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS/10);
-    // for now, no extra delay to let uss settle, since we're going to linger poll to let rssi settle
     setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'barcode_forward_done', smArgObj);
 }
 function stateFunction_barcode_forward_exit( smArgObj ) {
@@ -931,6 +933,8 @@ function stateFunction_recheck_barcode_entry( smArgObj ) {
     prepareForBarcodeCB( smArgObj );
 
     exec(__dirname + "/openCV_barcode_edge /dev/shm/last_edges.png -digits 1", processBarcodeResult);
+
+    // if no error, goto 'check_barcode_progress'
 }
 function stateFunction_recheck_barcode_exit( smArgObj ) {
     //console.log('stateFunction_recheck_barcode_exit... smArgObj=' + JSON.stringify(smArgObj));
@@ -956,27 +960,19 @@ function stateFunction_check_barcode_progress_entry( smArgObj ) {
     // we should only get to this state on 'found_barcode' event, which is based on 'match_count', so there should be no need
     //   to check that we actually matched something here...
 
-    if ( typeof smArgObj.barcode_prev_result !== 'undefined' && smArgObj.barcode_prev_result !== null ) {
-        var barcode_pixel_width = smArgObj.barcode_result.unit_width * 10;
-        var barcode_pixel_width_previous = smArgObj.barcode_prev_result.unit_width * 10;
-    
-        //old: { "digits":734343525257, "match_count":12, "start":{ "x":32, "y":74 }, "stop":{ "x":565, "y":74 }, "unit_width":5, "start_stop_width":533 }
+    //old: { "digits":734343525257, "match_count":12, "start":{ "x":32, "y":74 }, "stop":{ "x":565, "y":74 }, "unit_width":5, "start_stop_width":533 }
 
-        //{ "digits":7, "match_count":1, "start":{ "x":236, "y":251 }, "stop":{ "x":376, "y":251 }, "unit_width":14, "start_stop_width":140 }
-        //{ "digits":7, "match_count":1, "start":{ "x":160, "y":181 }, "stop":{ "x":468, "y":181 }, "unit_width":31, "start_stop_width":308 }
+    //{ "digits":7, "match_count":1, "start":{ "x":236, "y":251 }, "stop":{ "x":376, "y":251 }, "unit_width":14, "start_stop_width":140 }
+    //{ "digits":7, "match_count":1, "start":{ "x":160, "y":181 }, "stop":{ "x":468, "y":181 }, "unit_width":31, "start_stop_width":308 }
+    // 4 inches away: { "digits":7, "match_count":1, "start":{ "x":70, "y":180 }, "stop":{ "x":543, "y":180 }, "unit_width":48, "start_stop_width":473, "near_code":true }
 
-        if( smArgObj.barcode_result.near_code === true && ( smArgObj.barcode_result.unit_width > 30 || smArgObj.barcode_result.start_stop_width > 300 ) ) {
-            NextStateMachineEvent = 'barcode_largest';
-            NextStateMachineEventArg = smArgObj;    
-        } else {
-            // TBD: for now, go fwd
-            NextStateMachineEvent = 'barcode_progressing';
-            NextStateMachineEventArg = smArgObj;    
-        }
+    if( smArgObj.barcode_result.near_code === true && ( smArgObj.barcode_result.unit_width > 30 || smArgObj.barcode_result.start_stop_width > 300 ) ) {
+        NextStateMachineEvent = 'barcode_largest';
+        NextStateMachineEventArg = smArgObj;    
     } else {
-        // 1st time through, there is no previous barcode result value
+        // TBD: for now, go fwd
         NextStateMachineEvent = 'barcode_progressing';
-        NextStateMachineEventArg = smArgObj;        
+        NextStateMachineEventArg = smArgObj;    
     }
 }
 function stateFunction_check_barcode_progress_exit( smArgObj ) {
@@ -1066,6 +1062,7 @@ states = [
             'poll': 'poll_rssi',
             'get_temp': 'get_temperature',
             'rnd_walk': 'random_turn_0_to_90',      // smArgObj contains current rssi (= rssi to beat)
+            'test_barcode':'scan_for_barcode',
             'disconnect_success': 'idle'
         },
         'state_functions' : {
@@ -1287,9 +1284,7 @@ states = [
         'name':'barcode_turn',
         'events': {
             'error': 'poll_rssi',
-            'turn_done': 'scan_for_barcode',
-            'obstacle': 'scan_for_barcode',         // since we may be near dock, it will reflect as obstacle, just barcode to decide to go fwd
-            'no_obstacle': 'scan_for_barcode'       // since we may be near dock, it will reflect as obstacle, just barcode to decide to go fwd
+            'turn_done': 'scan_for_barcode'
         },
         'state_functions' : {
             'entry': stateFunction_barcode_turn_entry,
@@ -1302,15 +1297,13 @@ states = [
         'name':'barcode_center',
         'events': {
             'error': 'poll_rssi',
-            'center_done': 'barcode_forward',
-            'obstacle': 'barcode_forward',          // obstacle expected heading toward dock
-            'no_obstacle': 'barcode_forward'
+            'center_done': 'barcode_forward'
         },
         'state_functions' : {
             'entry': stateFunction_barcode_center_entry,
             'exit': stateFunction_barcode_center_exit
         },
-        "debug_wait": false,
+        "debug_wait": true,
         "debug_waiting": false
     },
     {
@@ -1345,7 +1338,7 @@ states = [
         'events': {
             'error': 'poll_rssi',
             'barcode_progressing': 'barcode_center',
-            'barcode_largest': 'verify_dock',
+            'barcode_largest': 'verify_dock'
         },
         'state_functions' : {
             'entry': stateFunction_check_barcode_progress_entry,
@@ -1366,7 +1359,7 @@ states = [
             'entry': stateFunction_verify_dock_entry,
             'exit': stateFunction_verify_dock_exit
         },
-        "debug_wait": false,
+        "debug_wait": true,
         "debug_waiting": false
     }
 ];
@@ -1527,6 +1520,29 @@ process.on('message', function (m) {
             } else {
                 console.log('cannot start random walk, due to not having initial rssi');
             }
+        } else if( m.command === 'test_barcode' ) {
+            // need a placeholder obj to hold barcode results
+            var smArgObj;
+            if( GetMMA_rssi() !== MMA_unknown ) {
+                var HILO = Get_rssiHL();
+                smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
+                             rssiToBeat: HILO,
+                             rssiToAvoid: null,
+                             rssiToBeatStepToRESETCounter: 0,
+                             lastTurnMode: TURN_MODE_UNKNOWN,
+                             initialStepsOfPath: true,
+                             rssiPathArray: [] };
+            } else {
+                smArgObj = { tagUUID: null,
+                             rssiToBeat: null,
+                             rssiToAvoid: null,
+                             rssiToBeatStepToRESETCounter: 0,
+                             lastTurnMode: TURN_MODE_UNKNOWN,
+                             initialStepsOfPath: true,
+                             rssiPathArray: [] };
+            }
+            CommandGeneratedEvent = 'test_barcode';
+            CommandGeneratedEventArg = smArgObj;
         } else if( m.command === 'reset_rssiHL' ) {
             // TEST (this message is sent by parent when it activates motor controls based on web client page activity):
             Reset_rssiHL();
