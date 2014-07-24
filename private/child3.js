@@ -819,6 +819,7 @@ function stateFunction_barcode_turn_entry( smArgObj ) {
         console.log('stateFunction_barcode_turn_entry: right:[90] ' + timeMs);
         motor.turnright(RIGHT_TURN_DUTY, timeMs);
 
+        // give xtra sec for picture capture to change, so that barcode scan logic will work right
         setTimeout(Delay_StateTransition_Timer, timeMs+1000, 'turn_done', smArgObj );
     } else {
         if( substatecount < 17 ) {
@@ -827,7 +828,7 @@ function stateFunction_barcode_turn_entry( smArgObj ) {
             console.log('stateFunction_barcode_turn_entry: left:[11.5] ' + timeMs);
             motor.turnleft(LEFT_TURN_DUTY, timeMs);
 
-            //setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, false);
+            // give xtra sec for picture capture to change, so that barcode scan logic will work right
             setTimeout(Delay_StateTransition_Timer, timeMs+1000, 'turn_done', smArgObj );
         } else {
             // we've exhausted the 180 degree field we were facing, the barcode should not be behind us, in the original orientation
@@ -888,7 +889,7 @@ function stateFunction_barcode_center_A_entry( smArgObj ) {
 
         console.log('stateFunction_barcode_center_A_entry: left:[11.5] ' + timeMs + ', smArgObj.centerA_Tvalue = ' + smArgObj.centerA_Tvalue);
 
-        // give xtra sec for picture capture to change
+        // give xtra sec for picture capture to change, so that barcode scan logic will work right
         setTimeout(Delay_StateTransition_Timer, timeMs+1000, 'turn_done', smArgObj );
     } else if( misalignment < -30) {
         timeMs = RIGHT_TURN_360_TIME_MS/32;
@@ -899,7 +900,7 @@ function stateFunction_barcode_center_A_entry( smArgObj ) {
 
         console.log('stateFunction_barcode_center_A_entry: right:[11.5] ' + timeMs + ', smArgObj.centerA_Tvalue = ' + smArgObj.centerA_Tvalue);
 
-        // give xtra sec for picture capture to change
+        // give xtra sec for picture capture to change, so that barcode scan logic will work right
         setTimeout(Delay_StateTransition_Timer, timeMs+1000, 'turn_done', smArgObj );
     } else {
         // close enough, keep going straight
@@ -1050,7 +1051,8 @@ function stateFunction_barcode_forward_entry( smArgObj ) {
         return;
     }
     motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS/10);
-    setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS, 'barcode_forward_done', smArgObj);
+    // give xtra sec for picture capture to change, so that barcode scan logic will work right
+    setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS+1000, 'barcode_forward_done', smArgObj);
 }
 function stateFunction_barcode_forward_exit( smArgObj ) {
     //console.log('stateFunction_barcode_forward_exit... smArgObj=' + JSON.stringify(smArgObj));
