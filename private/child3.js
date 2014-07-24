@@ -881,23 +881,26 @@ function stateFunction_barcode_center_A_entry( smArgObj ) {
 
     if( misalignment > 30 ) {
         timeMs = LEFT_TURN_360_TIME_MS/32;
-        console.log('stateFunction_barcode_center_A_entry: left:[11.5] ' + timeMs);
         motor.turnleft(LEFT_TURN_DUTY, timeMs);
 
         // positive misalignment with negative correction time indicator (left turn)
         smArgObj.centerA_Tvalue = 0 - timeMs;
 
-        setTimeout(Delay_StateTransition_Timer, timeMs, 'turn_done', smArgObj );
+        console.log('stateFunction_barcode_center_A_entry: left:[11.5] ' + timeMs + ', smArgObj.centerA_Tvalue = ' + smArgObj.centerA_Tvalue);
+
+        // give xtra sec for picture capture to change
+        setTimeout(Delay_StateTransition_Timer, timeMs+1000, 'turn_done', smArgObj );
     } else if( misalignment < -30) {
         timeMs = RIGHT_TURN_360_TIME_MS/32;
-        console.log('stateFunction_barcode_center_A_entry: right:[11.5] ' + timeMs);
         motor.turnright(LEFT_TURN_DUTY, timeMs);
 
         // negative misalignment with positive correction time indicator (right turn)
         smArgObj.centerA_Tvalue = timeMs;
 
-        //setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, timeMs+10000, smArgObj, true);
-        setTimeout(Delay_StateTransition_Timer, timeMs, 'turn_done', smArgObj );
+        console.log('stateFunction_barcode_center_A_entry: right:[11.5] ' + timeMs + ', smArgObj.centerA_Tvalue = ' + smArgObj.centerA_Tvalue);
+
+        // give xtra sec for picture capture to change
+        setTimeout(Delay_StateTransition_Timer, timeMs+1000, 'turn_done', smArgObj );
     } else {
         // close enough, keep going straight
         NextStateMachineEvent = 'center_done';
@@ -952,7 +955,9 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMS * LEFT_TURN_360_TIME_MS / RIGHT_TURN_360_TIME_MS;
+            timeMs = misalignment / pixel_travel * travel_timeMs * LEFT_TURN_360_TIME_MS / RIGHT_TURN_360_TIME_MS;
+
+            console.log('stateFunction_barcode_center_B_entry:fix OVERSHOT: LEFT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
                         
             motor.turnleft(LEFT_TURN_DUTY, timeMs);
         } else if( misalignment < 0 && prev_misalignment > 0 ) {
@@ -961,8 +966,10 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMS * RIGHT_TURN_360_TIME_MS / LEFT_TURN_360_TIME_MS;
+            timeMs = misalignment / pixel_travel * travel_timeMs * RIGHT_TURN_360_TIME_MS / LEFT_TURN_360_TIME_MS;
             
+            console.log('stateFunction_barcode_center_B_entry:fix OVERSHOT: RIGHT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
+
             motor.turnright(RIGHT_TURN_DUTY, timeMs);
         } else if( misalignment < 0 ) {
             // undershot turning right
@@ -970,7 +977,9 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMS;
+            timeMs = misalignment / pixel_travel * travel_timeMs;
+
+            console.log('stateFunction_barcode_center_B_entry:fix UNDERSHOT: RIGHT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
 
             motor.turnright(RIGHT_TURN_DUTY, timeMs);
         } else  {
@@ -979,7 +988,9 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMS;
+            timeMs = misalignment / pixel_travel * travel_timeMs;
+
+            console.log('stateFunction_barcode_center_B_entry:fix UNDERSHOT: LEFT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
 
             motor.turnleft(LEFT_TURN_DUTY, timeMs);
         }
@@ -1104,8 +1115,11 @@ function stateFunction_check_barcode_progress_entry( smArgObj ) {
     //{ "digits":7, "match_count":1, "start":{ "x":236, "y":251 }, "stop":{ "x":376, "y":251 }, "unit_width":14, "start_stop_width":140 }
     //{ "digits":7, "match_count":1, "start":{ "x":160, "y":181 }, "stop":{ "x":468, "y":181 }, "unit_width":31, "start_stop_width":308 }
     // 4 inches away: { "digits":7, "match_count":1, "start":{ "x":70, "y":180 }, "stop":{ "x":543, "y":180 }, "unit_width":48, "start_stop_width":473, "near_code":true }
+    
+    // new code:
+    // 4 inches away: { "digits":79, "match_count":2, "start":{ "x":131, "y":180 }, "stop":{ "x":595, "y":180 }, "unit_width":26, "start_stop_width":464, "near_code":true }
 
-    if( smArgObj.barcode_result.near_code === true && ( smArgObj.barcode_result.unit_width > 30 || smArgObj.barcode_result.start_stop_width > 300 ) ) {
+    if( smArgObj.barcode_result.near_code === true && smArgObj.barcode_result.match_count >= 2 && ( smArgObj.barcode_result.unit_width > 25 || smArgObj.barcode_result.start_stop_width > 400 ) ) {
         NextStateMachineEvent = 'barcode_largest';
         NextStateMachineEventArg = smArgObj;    
     } else {
@@ -2113,30 +2127,38 @@ function processBarcodeResult(error, stdout, stderr) {
         try {
             var barcode_result = JSON.parse(stdout);
 
-            // keep running tally of current barcode detection result and previous result
+            // avoid exact same result, which happens if we are called too quickly between camera frame capture
+            //   which is only roughly 1 fps
+            if (    typeof smArgObj_barcode.barcode_result === 'undefined' 
+                 || JSON.stringify( smArgObj_barcode ) !== JSON.stringify( barcode_result ) ) {
 
-            if (typeof smArgObj_barcode.barcode_result !== 'undefined' ) {
-                smArgObj_barcode.barcode_prev_result = smArgObj_barcode.barcode_result;
-            } else {
-                smArgObj_barcode.barcode_prev_result = null;
+                // keep running tally of current barcode detection result and previous result
+
+                if (typeof smArgObj_barcode.barcode_result !== 'undefined' ) {
+                    smArgObj_barcode.barcode_prev_result = smArgObj_barcode.barcode_result;
+                } else {
+                    smArgObj_barcode.barcode_prev_result = null;
+                }
+
+                smArgObj_barcode.barcode_result = barcode_result;
+
+                console.log('processBarcodeResult:BARCODE-RESULT: ' + JSON.stringify(barcode_result));
+
+                // we want a match_count of 2, since with 1, we were getting false-positives from the windows and noise
+                if (barcode_result.match_count > 1) {
+                    console.log('processBarcodeResult:BARCODE-RESULT: match_count = ' + barcode_result.match_count);
+                    //console.log('BARCODE RESULT: ' + JSON.stringify(barcode_result));
+
+                    NextStateMachineEvent    = 'found_barcode';
+                    NextStateMachineEventArg = smArgObj_barcode;
+                } else {
+                    console.log('processBarcodeResult:BARCODE-RESULT: [NO] match_count = ' + barcode_result.match_count);
+                    NextStateMachineEvent    = 'no_barcode';
+                    NextStateMachineEventArg = smArgObj_barcode;
+                }
+
+                errorDetected = false;
             }
-
-            smArgObj_barcode.barcode_result = barcode_result;
-
-            console.log('processBarcodeResult:BARCODE-RESULT: ' + JSON.stringify(barcode_result));
-            if (barcode_result.match_count > 0) {
-                console.log('processBarcodeResult:BARCODE-RESULT: match_count = ' + barcode_result.match_count);
-                //console.log('BARCODE RESULT: ' + JSON.stringify(barcode_result));
-
-                NextStateMachineEvent    = 'found_barcode';
-                NextStateMachineEventArg = smArgObj_barcode;
-            } else {
-                console.log('processBarcodeResult:BARCODE-RESULT: [NO] match_count = ' + barcode_result.match_count);
-                NextStateMachineEvent    = 'no_barcode';
-                NextStateMachineEventArg = smArgObj_barcode;
-            }
-
-            errorDetected = false;
         }
         catch (err) {
             console.log('BARCODE RESULT PARSE ERROR: error = ' + error + ', stdout = ' + stdout);
