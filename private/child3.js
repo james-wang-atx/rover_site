@@ -942,6 +942,7 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
     var left_margin         = smArgObj.barcode_result.start.x + 1;
     var right_margin        = 640 - barcode_pixel_width - left_margin;
     var misalignment        = right_margin - left_margin;
+    var misalignment_abs    = Math.abs( misalignment );
 
     console.log('stateFunction_barcode_center_B_entry: left=' + left_margin + ', barcode_width=' + barcode_pixel_width + ', right=' + right_margin + ', misalign=' + misalignment );
 
@@ -956,7 +957,7 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMs * LEFT_TURN_360_TIME_MS / RIGHT_TURN_360_TIME_MS;
+            timeMs = misalignment_abs / pixel_travel * travel_timeMs * LEFT_TURN_360_TIME_MS / RIGHT_TURN_360_TIME_MS;
 
             console.log('stateFunction_barcode_center_B_entry:fix OVERSHOT: LEFT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
                         
@@ -967,7 +968,7 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMs * RIGHT_TURN_360_TIME_MS / LEFT_TURN_360_TIME_MS;
+            timeMs = misalignment_abs / pixel_travel * travel_timeMs * RIGHT_TURN_360_TIME_MS / LEFT_TURN_360_TIME_MS;
             
             console.log('stateFunction_barcode_center_B_entry:fix OVERSHOT: RIGHT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
 
@@ -978,7 +979,7 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMs;
+            timeMs = misalignment_abs / pixel_travel * travel_timeMs;
 
             console.log('stateFunction_barcode_center_B_entry:fix UNDERSHOT: RIGHT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
 
@@ -989,7 +990,7 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
             var travel_timeMs = Math.abs( smArgObj.centerA_Tvalue );
 
             // floating point math:
-            timeMs = misalignment / pixel_travel * travel_timeMs;
+            timeMs = misalignment_abs / pixel_travel * travel_timeMs;
 
             console.log('stateFunction_barcode_center_B_entry:fix UNDERSHOT: LEFT: travel_timeMs=' + travel_timeMs + ', pixel_travel=' + pixel_travel + ', timeMs=' + timeMs);
 
