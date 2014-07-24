@@ -2132,7 +2132,7 @@ function processBarcodeResult(error, stdout, stderr) {
             // avoid exact same result, which happens if we are called too quickly between camera frame capture
             //   which is only roughly 1 fps
             if (    typeof smArgObj_barcode.barcode_result === 'undefined' 
-                 || JSON.stringify( smArgObj_barcode ) !== JSON.stringify( barcode_result ) ) {
+                 || JSON.stringify( smArgObj_barcode.barcode_result ) !== JSON.stringify( barcode_result ) ) {
 
                 // keep running tally of current barcode detection result and previous result
 
