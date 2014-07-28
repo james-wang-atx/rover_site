@@ -788,7 +788,7 @@ function stateFunction_scan_for_barcode_entry( smArgObj ) {
         return;
     }
 
-    prepareForBarcodeCB( smArgObj );
+    prepareForBarcodeCB( smArgObj, 2 );
 
     exec(__dirname + "/../openCV_barcode_edge /dev/shm/last_edges.png -digits 2", processBarcodeResult);
 }
@@ -861,22 +861,25 @@ function stateFunction_barcode_center_A_entry( smArgObj ) {
     
     // From smArgObj_barcode.barcode_result.unit_width value, we can compute the total barcode pixel-width,
     //   for normal 12-digit UPC barcode as follows:
-    //       total barcode pixel-width = unit_width * ( 11 + 12*7 ) = unit_width * 95
+    //      total barcode pixel-width = unit_width * ( 11 + 12*7 ) = unit_width * 95
     //
-    // HOWEVER, due to distance reading requirements, I decided to "blow up" a large "TWO-DIGIT" image containing just
-    //   the lguard (bar-space-bar) + 14 bits of the 2 digit ONLY, resulting in
-    //       total barcode pixel-width = unit_width * ( 3 + 2*7 ) = unit_width * 17
-    //     
+    // For my "TWO-DIGIT" image containing just the lguard (bar-space-bar) + 14 bits of the 2 digit ONLY:
+    //      total barcode pixel-width = unit_width * ( 3 + 2*7 ) = unit_width * 17
+    //
+    // HOWEVER, we now center on the single point of the starting x-pixel to avoid problems due to image
+    //      distortion when rover is at oblique angle to the barcode.
 
     // From smArgObj_barcode.barcode_result.start.x, we know where the barcode starts (0-based) in the 640 pixel-wide view.
     //      
 
-    var barcode_pixel_width = smArgObj.barcode_result.unit_width * CANNED_PIXEL_WIDTH_BITS;
-    var left_margin         = smArgObj.barcode_result.start.x + 1;
-    var right_margin        = 640 - barcode_pixel_width - left_margin;
-    var misalignment        = right_margin - left_margin;
+    //var barcode_pixel_width = smArgObj.barcode_result.unit_width * CANNED_PIXEL_WIDTH_BITS;
+    //var left_margin         = smArgObj.barcode_result.start.x + 1;
+    //var right_margin        = 640 - barcode_pixel_width - left_margin;
+    //var misalignment        = right_margin - left_margin;
+    var misalignment        = 320 - smArgObj.barcode_result.start.x;
 
-    console.log('stateFunction_barcode_center_A_entry: left=' + left_margin + ', barcode_width=' + barcode_pixel_width + ', right=' + right_margin + ', misalign=' + misalignment );
+    //console.log('stateFunction_barcode_center_A_entry: left=' + left_margin + ', barcode_width=' + barcode_pixel_width + ', right=' + right_margin + ', misalign=' + misalignment );
+    console.log('stateFunction_barcode_center_A_entry: start.x='+ smArgObj.barcode_result.start.x + ', misalign=' + misalignment );
 
     var timeMs = 0;
 
@@ -929,22 +932,25 @@ function stateFunction_barcode_center_B_entry( smArgObj ) {
         return;
     }
 
-    var prev_barcode_pixel_width = smArgObj.barcode_prev_result.unit_width * CANNED_PIXEL_WIDTH_BITS;
-    var prev_left_margin         = smArgObj.barcode_prev_result.start.x + 1;
-    var prev_right_margin        = 640 - prev_barcode_pixel_width - prev_left_margin;
-    var prev_misalignment        = prev_right_margin - prev_left_margin;
+    //var prev_barcode_pixel_width = smArgObj.barcode_prev_result.unit_width * CANNED_PIXEL_WIDTH_BITS;
+    //var prev_left_margin         = smArgObj.barcode_prev_result.start.x + 1;
+    //var prev_right_margin        = 640 - prev_barcode_pixel_width - prev_left_margin;
+    //var prev_misalignment        = prev_right_margin - prev_left_margin;
+    var prev_misalignment        = 320 - smArgObj.barcode_prev_result.start.x;
 
     // NOTE:  smArgObj.centerA_Tvalue
     //        For previous positive misalignment, a negative (centerA_Tvalue) correction time indicator (left turn) should be present
     //        For previous negative misalignment, a positive (centerA_Tvalue) correction time indicator (right turn) should be present
 
-    var barcode_pixel_width = smArgObj.barcode_result.unit_width * CANNED_PIXEL_WIDTH_BITS;
-    var left_margin         = smArgObj.barcode_result.start.x + 1;
-    var right_margin        = 640 - barcode_pixel_width - left_margin;
-    var misalignment        = right_margin - left_margin;
+    //var barcode_pixel_width = smArgObj.barcode_result.unit_width * CANNED_PIXEL_WIDTH_BITS;
+    //var left_margin         = smArgObj.barcode_result.start.x + 1;
+    //var right_margin        = 640 - barcode_pixel_width - left_margin;
+    //var misalignment        = right_margin - left_margin;
+    var misalignment        = 320 - smArgObj.barcode_result.start.x;
     var misalignment_abs    = Math.abs( misalignment );
 
-    console.log('stateFunction_barcode_center_B_entry: left=' + left_margin + ', barcode_width=' + barcode_pixel_width + ', right=' + right_margin + ', misalign=' + misalignment );
+    //console.log('stateFunction_barcode_center_B_entry: left=' + left_margin + ', barcode_width=' + barcode_pixel_width + ', right=' + right_margin + ', misalign=' + misalignment );
+    console.log('stateFunction_barcode_center_B_entry: start.x='+ smArgObj.barcode_result.start.x + ', misalign=' + misalignment + ', prev_misalign=' + prev_misalignment );
 
     // if currently, misaligned (previously MUST have also been misaligned, else we would not get here)
     if( misalignment > 30 || misalignment < -30 ) {
@@ -1026,7 +1032,7 @@ function stateFunction_barcode_rescan_center_entry( smArgObj ) {
     }
 
     if( smArgObj.rescan_barcode_limiter_count < 10 ) {
-        prepareForBarcodeCB( smArgObj );
+        prepareForBarcodeCB( smArgObj, 1 );
 
         exec(__dirname + "/../openCV_barcode_edge /dev/shm/last_edges.png -digits 2", processBarcodeResult);
 
@@ -1077,7 +1083,7 @@ function stateFunction_barcode_rescan_forward_entry( smArgObj ) {
     }
 
     if( smArgObj.rescan_barcode_limiter_count < 10 ) {
-        prepareForBarcodeCB( smArgObj );
+        prepareForBarcodeCB( smArgObj, 1 );
 
         exec(__dirname + "/../openCV_barcode_edge /dev/shm/last_edges.png -digits 2", processBarcodeResult);
 
@@ -1122,7 +1128,8 @@ function stateFunction_check_barcode_progress_entry( smArgObj ) {
     // new code:
     // 4 inches away: { "digits":79, "match_count":2, "start":{ "x":131, "y":180 }, "stop":{ "x":595, "y":180 }, "unit_width":26, "start_stop_width":464, "near_code":true }
 
-    if( smArgObj.barcode_result.near_code === true && smArgObj.barcode_result.match_count >= 2 && ( smArgObj.barcode_result.unit_width > 25 || smArgObj.barcode_result.start_stop_width > 400 ) ) {
+    if(    smArgObj.barcode_result.near_code === true
+        && ( smArgObj.barcode_result.unit_width > 13 || smArgObj.barcode_result.start_stop_width > 300 ) ) {
         NextStateMachineEvent = 'barcode_largest';
         NextStateMachineEventArg = smArgObj;    
     } else {
@@ -2119,7 +2126,8 @@ function get_and_incr_turn_90_repeat_count() {
 
 var smArgObj_barcode = null;
 
-function prepareForBarcodeCB( smArgObj ) {
+function prepareForBarcodeCB( smArgObj, desired_match_count ) {
+    smArgObj.desired_match_count = desired_match_count;
     smArgObj_barcode = smArgObj;
 }
 
@@ -2147,8 +2155,7 @@ function processBarcodeResult(error, stdout, stderr) {
 
                 console.log('processBarcodeResult:BARCODE-RESULT: ' + JSON.stringify(barcode_result));
 
-                // we want a match_count of 2, since with 1, we were getting false-positives from the windows and noise
-                if (barcode_result.match_count > 1) {
+                if (barcode_result.match_count >= smArgObj_barcode.desired_match_count) {
                     console.log('processBarcodeResult:BARCODE-RESULT: match_count = ' + barcode_result.match_count);
                     //console.log('BARCODE RESULT: ' + JSON.stringify(barcode_result));
 
