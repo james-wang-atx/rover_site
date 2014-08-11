@@ -1461,7 +1461,7 @@ states = [
         'events': {
             'error': 'poll_rssi',
             'turn_done': 'barcode_rescan_center',
-            'center_done': 'barcode_forward'            //skip adjustment
+            'center_done': 'barcode_forward'
         },
         'state_functions' : {
             'entry': stateFunction_barcode_center_A_entry,

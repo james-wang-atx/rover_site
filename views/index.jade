@@ -8,7 +8,7 @@ block append head
 
 block content
   p
-    | Welcome to the Security and Safety Rover's monitoring page.
+    | Welcome to the Security and Safety Rover's direct monitoring page.
   p
     | Live Image:
   p
@@ -26,10 +26,13 @@ block content
 block sidebar
   .widget
     h1 Rover Sensors
-    p
-      | Fire Detection - [false]
-    p
-      | Water Detection - [false]
+    div
+        p
+          | Fire Detection / Water Detection
+        textarea(id="FireSensor", name="FireSensor", rows=1, cols=10)
+            | unknown
+        textarea(id="WaterSensor", name="WaterSensor", rows=1, cols=10)
+            | unknown
     h1 SensorTag Data
     p
       form(id="tempForm", action="/rover?gettemp=true", method="get")

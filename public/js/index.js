@@ -19,6 +19,9 @@ function displayImage() {
   LoadTextAreaFromUrl("/bt/rssi", document.getElementById("RSSI"));
   LoadTextAreaFromUrl("/debug?getWaitState=true", document.getElementById("WAITSTATE"));
 
+  LoadTextAreaFromUrl("/sensors/flame", document.getElementById("FireSensor"));
+  LoadTextAreaFromUrl("/sensors/water", document.getElementById("WaterSensor"));
+
   // every 3rd time (3 seconds), do the barcode check
   if ((counter & 3) == 0) {
       LoadTextAreaFromUrl("/barcode", document.getElementById("barcode"));

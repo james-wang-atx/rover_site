@@ -13,14 +13,19 @@ var exec    = cp.exec;
 var motor   = require('./private/motor');
 var uss     = require('./private/uss');
 
-
-bone.pinMode("USR3", bone.OUTPUT);
 var whichButton = 'USR3';
+bone.pinMode(whichButton, bone.OUTPUT);
 
 bone.pinMode('P9_14', bone.OUTPUT);
 bone.pinMode('P9_16', bone.OUTPUT);
 bone.pinMode('P8_13', bone.OUTPUT);
 bone.pinMode('P8_19', bone.OUTPUT);
+
+// Flame and Water sensors
+var FLAMEINPUT = 'P8_7';
+bone.pinMode(FLAMEINPUT, bone.INPUT);
+var WATERINPUT = 'P9_11';
+bone.pinMode(WATERINPUT, bone.INPUT);
 
 var app = express()
 
@@ -116,6 +121,72 @@ app.get('/uss/front', function (req, res) {
         uss.frontInches(UpdateUSStatusFront, null);
     }
 })
+
+
+var pendingFlame_Responses = [];
+
+function checkFlame(x) {
+    while (pendingFlame_Responses.length > 0) {
+        res = pendingFlame_Responses.pop();
+
+        res.set({
+            'Content-Type': 'text/plain'
+        });
+
+        res.writeHead(200);
+
+        // sensor is active-low
+        if (x.value == 1) {
+            res.write("false [F]");
+        } else {
+            res.write("true [F]");
+        }
+
+        res.end();
+    }
+}
+
+app.get('/sensors/flame', function (req, res) {
+    // save the response object into the array, to be process in checkFlame() callback
+    pendingFlame_Responses.push(res);
+
+    if (pendingFlame_Responses.length == 1) {
+        bone.digitalRead(FLAMEINPUT, checkFlame);
+    }
+})
+
+var pendingWater_Responses = [];
+
+function checkWater(x) {
+    while (pendingWater_Responses.length > 0) {
+        res = pendingWater_Responses.pop();
+
+        res.set({
+            'Content-Type': 'text/plain'
+        });
+
+        res.writeHead(200);
+
+        // sensor is active-low
+        if (x.value == 1) {
+            res.write("false [W]");
+        } else {
+            res.write("true [W]");
+        }
+
+        res.end();
+    }
+}
+
+app.get('/sensors/water', function (req, res) {
+    // save the response object into the array, to be process in checkWater() callback
+    pendingWater_Responses.push(res);
+
+    if (pendingWater_Responses.length == 1) {
+        bone.digitalRead(WATERINPUT, checkWater);
+    }
+})
+
 
 var last_rssi = 'unknown';
 var last_object_temperature = 'unknown';
