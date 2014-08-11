@@ -23,9 +23,9 @@ bone.pinMode('P8_19', bone.OUTPUT);
 
 // Flame and Water sensors
 var FLAMEINPUT = 'P8_7';
-bone.pinMode(FLAMEINPUT, bone.INPUT);
+bone.pinMode(FLAMEINPUT, bone.INPUT, 0x2f, 'disabled');
 var WATERINPUT = 'P9_11';
-bone.pinMode(WATERINPUT, bone.INPUT);
+bone.pinMode(WATERINPUT, bone.INPUT, 0x2f, 'disabled');
 
 var app = express()
 
