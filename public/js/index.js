@@ -22,6 +22,8 @@ function displayImage() {
   LoadTextAreaFromUrl("/sensors/flame", document.getElementById("FireSensor"));
   LoadTextAreaFromUrl("/sensors/water", document.getElementById("WaterSensor"));
 
+  LoadTextAreaFromUrl("/sensors/powervoltage", document.getElementById("SupplyVoltage"));
+  
   // every 3rd time (3 seconds), do the barcode check
   if ((counter & 3) == 0) {
       LoadTextAreaFromUrl("/barcode", document.getElementById("barcode"));

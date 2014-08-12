@@ -33,6 +33,10 @@ block sidebar
             | unknown
         textarea(id="WaterSensor", name="WaterSensor", rows=1, cols=10)
             | unknown
+        p
+          | Supply Voltage
+        textarea(id="SupplyVoltage", name="SupplyVoltage", rows=1, cols=10)
+            | unknown
     h1 SensorTag Data
     p
       form(id="tempForm", action="/rover?gettemp=true", method="get")

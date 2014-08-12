@@ -23,9 +23,9 @@ bone.pinMode('P8_19', bone.OUTPUT);
 
 // Flame and Water sensors
 var FLAMEINPUT = 'P8_7';
-bone.pinMode(FLAMEINPUT, bone.INPUT, 0x2f, 'disabled');
+bone.pinMode(FLAMEINPUT, bone.INPUT, 0x7, 'disabled');
 var WATERINPUT = 'P9_11';
-bone.pinMode(WATERINPUT, bone.INPUT, 0x2f, 'disabled');
+bone.pinMode(WATERINPUT, bone.INPUT, 0x7, 'disabled');
 
 var app = express()
 
@@ -184,6 +184,49 @@ app.get('/sensors/water', function (req, res) {
 
     if (pendingWater_Responses.length == 1) {
         bone.digitalRead(WATERINPUT, checkWater);
+    }
+})
+
+
+var pendingPowerVoltage_Responses = [];
+
+var MEASURED_17V_TO_1p8V_RATIO = 16.36 / 1.691;
+
+function handlePowerVoltageRequests(x) {
+    if (isNaN(x.value)) {
+        bone.analogRead('P9_33', handlePowerVoltageRequests);
+        return;
+    }
+
+    analogVoltage = x.value * 1.8;          // ADC Value converted to voltage
+    computedVoltage = analogVoltage * MEASURED_17V_TO_1p8V_RATIO;
+
+    console.log('handlePowerVoltageRequests: analogVoltage - ' + analogVoltage + ', computed - ' + computedVoltage);
+
+    while (pendingPowerVoltage_Responses.length > 0) {
+        res = pendingPowerVoltage_Responses.pop();
+
+        res.set({
+            'Content-Type': 'text/plain'
+        });
+
+        res.writeHead(200);
+
+        res.write("" + computedVoltage);
+
+        res.end();    
+    }
+}
+
+app.get('/sensors/powervoltage', function (req, res) {
+    //console.log('/sensors/powervoltage - req.url=' + req.url);
+
+    // save the response object into the array which is processed
+    //   in the analogRead() callback
+    pendingPowerVoltage_Responses.push(res);
+
+    if (pendingPowerVoltage_Responses.length == 1) {
+        bone.analogRead('P9_33', handlePowerVoltageRequests);
     }
 })
 
