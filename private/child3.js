@@ -157,15 +157,133 @@ function stateFunction_get_temperature_exit( smArgObj ) {
     //console.log('stateFunction_get_temperature_exit... smArgObj=' + JSON.stringify(smArgObj));
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+// START DEMO1 STATES
+///////////////////////////////////////////////////////////////////////////////////////////	
+
+// [demo1_start]
+function stateFunction_demo1_start_entry( smArgObj ) {
+    console.log('stateFunction_demo1_start_entry... smArgObj=' + JSON.stringify(smArgObj));
+    // one-shot timer callback to just check USS and set obstacle or no_obstacle event
+    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, 1000, smArgObj);
+}
+function stateFunction_demo1_start_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_start_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_forward1]
+function stateFunction_demo1_forward1_entry( smArgObj ) {
+    console.log('stateFunction_demo1_forward1_entry... smArgObj=' + JSON.stringify(smArgObj));
+    motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS);
+    setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS+2500, 'done', smArgObj);
+}
+function stateFunction_demo1_forward1_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_forward1_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_recheck_uss1]
+function stateFunction_demo1_recheck_uss1_entry( smArgObj ) {
+    console.log('stateFunction_demo1_recheck_uss1_entry... smArgObj=' + JSON.stringify(smArgObj));
+    // one-shot timer callback to just check USS and set obstacle or no_obstacle event
+    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, 10, smArgObj);
+}
+function stateFunction_demo1_recheck_uss1_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_recheck_uss1_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_left1]
+function stateFunction_demo1_left1_entry( smArgObj ) {
+    console.log('stateFunction_demo1_left1_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+	// left 90 degrees
+	timeMs = LEFT_TURN_360_TIME_MS/4;
+	motor.turnleft(LEFT_TURN_DUTY, timeMs);
+		
+    setTimeout(Delay_StateTransition_Timer, timeMs+2500, 'done', smArgObj);
+}
+function stateFunction_demo1_left1_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_left1_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_recheck_uss2]
+function stateFunction_demo1_recheck_uss2_entry( smArgObj ) {
+    console.log('stateFunction_demo1_recheck_uss2_entry... smArgObj=' + JSON.stringify(smArgObj));
+    // one-shot timer callback to just check USS and set obstacle or no_obstacle event
+    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, 10, smArgObj);
+}
+function stateFunction_demo1_recheck_uss2_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_recheck_uss2_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_forward2]
+function stateFunction_demo1_forward2_entry( smArgObj ) {
+    console.log('stateFunction_demo1_forward2_entry... smArgObj=' + JSON.stringify(smArgObj));
+    motor.forward(STD_FWD_DUTY, STD_FWD_TIMEMS);
+    setTimeout(Delay_StateTransition_Timer, STD_FWD_TIMEMS+2500, 'done', smArgObj);
+}
+function stateFunction_demo1_forward2_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_forward2_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_recheck_uss3]
+function stateFunction_demo1_recheck_uss3_entry( smArgObj ) {
+    console.log('stateFunction_demo1_recheck_uss3_entry... smArgObj=' + JSON.stringify(smArgObj));
+    // one-shot timer callback to just check USS and set obstacle or no_obstacle event
+    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, 10, smArgObj);
+}
+function stateFunction_demo1_recheck_uss3_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_recheck_uss3_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_right]
+function stateFunction_demo1_right_entry( smArgObj ) {
+    console.log('stateFunction_demo1_right_entry... smArgObj=' + JSON.stringify(smArgObj));
+
+	// right 90 degrees
+	timeMs = RIGHT_TURN_360_TIME_MS/4;
+	motor.turnright(RIGHT_TURN_DUTY, timeMs);
+		
+    setTimeout(Delay_StateTransition_Timer, timeMs+2000, 'done', smArgObj);
+}
+function stateFunction_demo1_right_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_right_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_recheck_uss4]
+function stateFunction_demo1_recheck_uss4_entry( smArgObj ) {
+    console.log('stateFunction_demo1_recheck_uss4_entry... smArgObj=' + JSON.stringify(smArgObj));
+    // one-shot timer callback to just check USS and set obstacle or no_obstacle event
+    setTimeout(TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events, 10, smArgObj);
+}
+function stateFunction_demo1_recheck_uss4_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_recheck_uss4_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+// [demo1_forward3]
+function stateFunction_demo1_forward3_entry( smArgObj ) {
+    console.log('stateFunction_demo1_forward3_entry... smArgObj=' + JSON.stringify(smArgObj));
+	
+	timeMs = STD_FWD_TIMEMS*3;
+    motor.forward(STD_FWD_DUTY, timeMs);
+    setTimeout(Delay_StateTransition_Timer, timeMs+2000, 'done', smArgObj);
+}
+function stateFunction_demo1_forward3_exit( smArgObj ) {
+    //console.log('stateFunction_demo1_forward3_exit... smArgObj=' + JSON.stringify(smArgObj));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// END DEMO1 STATES
+///////////////////////////////////////////////////////////////////////////////////////////
+
 var TURN_MODE_UNKNOWN      = -1;
 var TURN_MODE_LEFT_90      =  0;
 var TURN_MODE_RIGHT_90     =  1;
 var TURN_MODE_RANDOM       =  2;
 
 var LEFT_TURN_DUTY         = 0.5;
-var LEFT_TURN_360_TIME_MS  = 2040;  // accurate when battery is nearly charged
+var LEFT_TURN_360_TIME_MS  = 2300;  // 2040 accurate when battery is nearly charged
 var RIGHT_TURN_DUTY        = 0.5;
-var RIGHT_TURN_360_TIME_MS = 2400;  // accurate when battery is nearly charged
+var RIGHT_TURN_360_TIME_MS = 2400;  // 2350 accurate when battery is nearly charged
 
 var STD_FWD_DUTY   = 0.4;
 var STD_FWD_TIMEMS = 500;
@@ -1218,6 +1336,147 @@ states = [
         "debug_wait": false,
         "debug_waiting": false
     },
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// START DEMO1 STATES
+	///////////////////////////////////////////////////////////////////////////////////////////	
+    {
+        'name':'demo1_start',
+        'events': {
+            'error': 'poll_rssi',
+            'obstacle': 'poll_rssi',
+            'no_obstacle': 'demo1_forward1'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_start_entry,
+            'exit': stateFunction_demo1_start_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'demo1_forward1',
+        'events': {
+            'error': 'poll_rssi',
+            'done': 'demo1_recheck_uss1'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_forward1_entry,
+            'exit': stateFunction_demo1_forward1_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    }, 	// ^
+    {	// v
+        'name':'demo1_recheck_uss1',
+        'events': {
+            'error': 'poll_rssi',
+            'obstacle': 'demo1_left1',
+            'no_obstacle': 'demo1_forward1'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_recheck_uss1_entry,
+            'exit': stateFunction_demo1_recheck_uss1_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'demo1_left1',
+        'events': {
+            'error': 'poll_rssi',
+            'done': 'demo1_recheck_uss2'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_left1_entry,
+            'exit': stateFunction_demo1_left1_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'demo1_recheck_uss2',
+        'events': {
+            'error': 'poll_rssi',
+            'obstacle': 'poll_rssi',	// ERROR - UNEXPECTED
+            'no_obstacle': 'demo1_forward2'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_recheck_uss2_entry,
+            'exit': stateFunction_demo1_recheck_uss2_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'demo1_forward2',
+        'events': {
+            'error': 'poll_rssi',
+            'done': 'demo1_recheck_uss3'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_forward2_entry,
+            'exit': stateFunction_demo1_forward2_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    }, 	// ^
+    {	// v
+        'name':'demo1_recheck_uss3',
+        'events': {
+            'error': 'poll_rssi',
+            'obstacle': 'demo1_right',
+            'no_obstacle': 'demo1_forward2'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_recheck_uss3_entry,
+            'exit': stateFunction_demo1_recheck_uss3_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'demo1_right',
+        'events': {
+            'error': 'poll_rssi',
+            'done': 'demo1_recheck_uss4'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_right_entry,
+            'exit': stateFunction_demo1_right_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'demo1_recheck_uss4',
+        'events': {
+            'error': 'poll_rssi',
+            'obstacle': 'poll_rssi',	// ERROR - UNEXPECTED
+            'no_obstacle': 'demo1_forward3'
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_recheck_uss3_entry,
+            'exit': stateFunction_demo1_recheck_uss3_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+    {
+        'name':'demo1_forward3',
+        'events': {
+            'error': 'poll_rssi',
+            'done': 'poll_rssi'			// FLAME SHOULD BE VISIBLE, JUST WAIT HERE
+        },
+        'state_functions' : {
+            'entry': stateFunction_demo1_forward3_entry,
+            'exit': stateFunction_demo1_forward3_exit
+        },
+        "debug_wait": false,
+        "debug_waiting": false
+    },
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// END DEMO1 STATES
+	///////////////////////////////////////////////////////////////////////////////////////////	
     {
         'name':'poll_rssi',
         'events':{
@@ -1225,6 +1484,7 @@ states = [
             'poll': 'poll_rssi',
             'get_temp': 'get_temperature',
             'rnd_walk': 'random_turn_0_to_90',      // smArgObj contains current rssi (= rssi to beat)
+			'go_demo1': 'demo1_start',
             'test_barcode':'scan_for_barcode',
             'disconnect_success': 'idle'
         },
@@ -1695,8 +1955,26 @@ process.on('message', function (m) {
             //   need to mutex access to these globals
             CommandGeneratedEvent = 'get_temp';
             CommandGeneratedEventArg = null;
+        } else if( m.command === 'demo1' ) {
+			// WE DON'T NEED BLE/RSSI code, but unfortunately, some of the state machine code,
+			//   including the USS handlers, check for the smArgObj fields.
+            if( GetMMA_rssi() !== MMA_unknown ) {
+				var HILO = Get_rssiHL();
+				var smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
+								 rssiToBeat: HILO,
+								 rssiToAvoid: null,
+								 rssiToBeatStepToRESETCounter: 0,
+								 lastTurnMode: TURN_MODE_UNKNOWN,
+								 initialStepsOfPath: true,
+								 rssiPathArray: [] };
+				CommandGeneratedEvent = 'go_demo1';
+				CommandGeneratedEventArg = smArgObj;
+			} else {
+                console.log('cannot start demo1, due to not having initial rssi');
+            }
         } else if( m.command === 'random_walk' ) {
             // (Note that the clearStateGenerated boolean should = false, for external command event)
+			// Check to see if we're connected BLE to the SensorTag
             if( GetMMA_rssi() !== MMA_unknown ) {
                 var HILO = Get_rssiHL();
                 var smArgObj = { tagUUID: mySensorTag.uuid.toLowerCase(),
@@ -1820,7 +2098,6 @@ function TurnWaitTimerCB_Check_USS_and_Set_SM_Obstacle_Events(smArgObj, boolUseR
 function CheckUSSCB_SetSMEvent_Rnd(distanceFloat, smArgObj) {
     if( distanceFloat > 9.0 ) {
         console.log('CheckUSSCB_SetSMEvent_Rnd: ' + distanceFloat + ' inches, ' + JSON.stringify(smArgObj) + ' _____ CLEAR _____');
-        
         smArgObj.obstacle        = false;
 
         var rnd = Math.random();

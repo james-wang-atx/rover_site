@@ -27,6 +27,18 @@ bone.pinMode(FLAMEINPUT, bone.INPUT, 0x7, 'disabled');
 var WATERINPUT = 'P9_11';
 bone.pinMode(WATERINPUT, bone.INPUT, 0x7, 'disabled');
 
+function waterGPIOcallback(error, stdout, stderr) {
+    if (error !== null) {
+		console.log('Error setting WATER GPIO edge: ' + error);
+    } else {
+		console.log('SET WATER GPIO EDGE...');
+	}
+    console.log('stdout: ' + stdout);
+    console.log('stderr: ' + stderr);
+}
+
+exec("echo both > /sys/class/gpio/gpio30/edge", waterGPIOcallback);
+
 var app = express()
 
 function compile(str, path) {
@@ -201,7 +213,7 @@ function handlePowerVoltageRequests(x) {
     analogVoltage = x.value * 1.8;          // ADC Value converted to voltage
     computedVoltage = analogVoltage * MEASURED_17V_TO_1p8V_RATIO;
 
-    console.log('handlePowerVoltageRequests: analogVoltage - ' + analogVoltage + ', computed - ' + computedVoltage);
+    //console.log('handlePowerVoltageRequests: analogVoltage - ' + analogVoltage + ', computed - ' + computedVoltage);
 
     while (pendingPowerVoltage_Responses.length > 0) {
         res = pendingPowerVoltage_Responses.pop();
@@ -271,6 +283,12 @@ app.get('/rover', function (req, res) {
         n.send({ command: 'get_temp' });
 
         outstanding_response = res;
+    }
+    else if (req.url == "/rover?demo1=true") {
+        console.log('DEMO1');
+        n.send({ command: 'demo1' });
+        res.writeHead(204);
+        res.end();
     }
     else {
         res.render('index', { title: 'Security and Safety Rover' })
